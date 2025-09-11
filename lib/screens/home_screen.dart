@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../models/course.dart'; // 1. Import พิมพ์เขียวของเราเข้ามา
-import 'check_in_screen.dart'; // 2. Import หน้าเช็คชื่อ (เดี๋ยวเราจะสร้างกัน)
+import '../models/course.dart';
+import 'check_in_screen.dart';
+import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -34,6 +35,17 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Text('My Courses'),
         backgroundColor: Colors.indigo,
         foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              // 7. เมื่อกดปุ่ม Settings ให้ "ส่งข้อมูลวิชา" ไปยังหน้า SettingsScreen
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const SettingsScreen()),
+              );
+            },
+          ),
+        ],
       ),
       // 4. ใช้ ListView.builder เพื่อสร้างลิสต์ที่มีประสิทธิภาพ
       body: ListView.builder(

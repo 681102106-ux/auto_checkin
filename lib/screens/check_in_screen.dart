@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/course.dart';
 import '../models/student.dart';
-import '../models/attendance.dart'; //
+import '../models/attendance.dart'; // Import Attendance Model
 
 class CheckInScreen extends StatefulWidget {
   final Course course;
@@ -15,7 +15,7 @@ class CheckInScreen extends StatefulWidget {
 class _CheckInScreenState extends State<CheckInScreen> {
   // 1. สร้าง "ข้อมูลจำลอง" ของนักเรียนในวิชานี้
   final List<Student> _students = [
-    Student(id: '68001', name: 'นายสมชาย ใจดี'),
+    Student(id: '681102106', name: 'นายเจฟสุดหล่อ คนดี100000%'),
     Student(id: '68002', name: 'นางสาวสมศรี มีสุข'),
     Student(id: '68003', name: 'นายมานะ อดทน'),
     Student(id: '68004', name: 'นางสาวปิติ ยินดี'),

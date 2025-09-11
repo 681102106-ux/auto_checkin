@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/course.dart';
 import '../models/student.dart';
-import '../models/attendance.dart';
+import '../models/attendance.dart'; //
 
 class CheckInScreen extends StatefulWidget {
   final Course course;

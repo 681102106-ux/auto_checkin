@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../models/user_role.dart'; // ตรวจสอบให้แน่ใจว่า path นี้ถูกต้อง
 import 'home_screen.dart';
+import 'student_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -17,6 +19,29 @@ class _LoginScreenState extends State<LoginScreen> {
     _idController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  void _handleLogin() {
+    final String userId = _idController.text;
+    final String password = _passwordController.text;
+
+    print('Attempting login with User ID: $userId');
+
+    // สมมติว่าทุกคนที่ล็อกอินเป็น 'student'
+    const currentUserRole = UserRole.student;
+
+    switch (currentUserRole) {
+      case UserRole.professor:
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
+        break;
+      case UserRole.student:
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const StudentScreen()),
+        );
+        break;
+    }
   }
 
   @override
@@ -38,10 +63,8 @@ class _LoginScreenState extends State<LoginScreen> {
               color: Colors.indigo,
             ),
             const SizedBox(height: 40),
-
-            // --- ช่องกรอกที่ผูกกับ Controller แล้ว ---
             TextField(
-              controller: _idController, // ผูก "สายจูง" เส้นที่ 1
+              controller: _idController,
               decoration: InputDecoration(
                 labelText: 'รหัสประจำตัว',
                 border: OutlineInputBorder(
@@ -51,9 +74,8 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
             const SizedBox(height: 20),
-
             TextField(
-              controller: _passwordController, // ผูก "สายจูง" เส้นที่ 2
+              controller: _passwordController,
               obscureText: true,
               decoration: InputDecoration(
                 labelText: 'รหัสผ่าน',
@@ -64,25 +86,10 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
             const SizedBox(height: 40),
-
-            // --- ปุ่มที่มีชีวิตแล้ว! ---
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {
-                  // อ่านค่าจากช่องข้อความผ่าน controller
-                  final String userId = _idController.text;
-                  final String password = _passwordController.text;
-
-                  // แสดงผลใน Console เพื่อเช็กว่าเราอ่านค่าได้จริง
-                  print('User ID: $userId');
-                  print('Password: $password');
-
-                  // คำสั่งนำทางไปยังหน้า Home
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (context) => const HomeScreen()),
-                  );
-                },
+                onPressed: _handleLogin,
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   backgroundColor: Colors.indigo,

@@ -5,7 +5,7 @@ import '../models/attendance.dart';
 
 class CheckInScreen extends StatefulWidget {
   final Course course;
-  // เราไม่ต้องการ scores Map อีกต่อไปแล้ว!
+  // We no longer need the separate 'scores' map here!
 
   const CheckInScreen({super.key, required this.course});
 
@@ -14,22 +14,24 @@ class CheckInScreen extends StatefulWidget {
 }
 
 class _CheckInScreenState extends State<CheckInScreen> {
-  // ... (ส่วนของข้อมูลนักเรียนและ initState เหมือนเดิม) ...
+  // Mock data for students
   final List<Student> _students = [
     Student(id: '68001', name: 'นายสมชาย ใจดี'),
     Student(id: '68002', name: 'นางสาวสมศรี มีสุข'),
+    Student(id: '68003', name: 'นายมานะ อดทน'),
   ];
   Map<String, AttendanceStatus> _attendanceData = {};
 
   @override
   void initState() {
     super.initState();
+    // Initialize attendance data for all students
     for (var student in _students) {
       _attendanceData[student.id] = AttendanceStatus.unknown;
     }
   }
 
-  // แก้ไขฟังก์ชันนี้ให้ใช้กฎจาก widget.course
+  // This function now correctly uses the scoring rules from the passed 'course' object
   double _getScoreForStatus(AttendanceStatus? status) {
     switch (status) {
       case AttendanceStatus.present:
@@ -45,10 +47,8 @@ class _CheckInScreenState extends State<CheckInScreen> {
     }
   }
 
-  // ... (โค้ด build และ _buildStatusOption ที่เหลือเหมือนเดิมเป๊ะ) ...
   @override
   Widget build(BuildContext context) {
-    // โค้ดส่วนนี้ไม่ต้องแก้ไขเลย! มันจะทำงานได้เอง!
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.course.name),
@@ -126,6 +126,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
+          // TODO: Implement actual save logic
           print(_attendanceData);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('บันทึกการเช็คชื่อเรียบร้อย!')),

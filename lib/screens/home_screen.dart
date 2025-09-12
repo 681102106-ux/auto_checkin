@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/course.dart';
+import '../models/scoring_rules.dart';
 import 'check_in_screen.dart';
-import 'settings_screen.dart';
+import 'create_course_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -11,32 +12,18 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // --- [โค้ดใหม่] ย้าย "ขุมทรัพย์" (ค่าคะแนน) มาไว้ที่นี่! ---
-  Map<String, double> _scores = {
-    'present': 1.0,
-    'absent': 0.0,
-    'onLeave': 0.5,
-    'late': 0.75,
-  };
-
-  // --- [โค้ดใหม่] สร้างฟังก์ชันสำหรับให้หน้า Settings เรียกใช้เพื่ออัปเดตคะแนน ---
-  void _updateScores(Map<String, double> newScores) {
-    setState(() {
-      _scores = newScores;
-    });
-  }
-
-  // ... (ข้อมูลจำลองของรายวิชาเหมือนเดิม)
   final List<Course> _courses = [
     Course(
       id: 'CS101',
       name: 'Introduction to Computer Science',
       professorName: 'อ.นราศักดิ์',
+      scoringRules: ScoringRules(),
     ),
     Course(
-      id: 'CS203',
-      name: 'Data Structures and Algorithms',
-      professorName: 'อ.นราศักดิ์',
+      id: 'MA101',
+      name: 'Calculus I',
+      professorName: 'อ.สมศรี',
+      scoringRules: ScoringRules(presentScore: 2.0, lateScore: 1.0),
     ),
   ];
 
@@ -45,41 +32,45 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Courses'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {
-              // --- [แก้ไข] ส่ง "ค่าคะแนน" และ "ฟังก์ชันอัปเดต" ไปให้หน้า Settings ---
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => SettingsScreen(
-                    initialScores: _scores,
-                    onScoresUpdated: _updateScores,
-                  ),
-                ),
-              );
-            },
-          ),
-        ],
+        backgroundColor: Colors.indigo,
+        foregroundColor: Colors.white,
       ),
       body: ListView.builder(
         itemCount: _courses.length,
         itemBuilder: (context, index) {
           final course = _courses[index];
           return ListTile(
+            leading: const Icon(Icons.book, color: Colors.indigo),
             title: Text(course.name),
             subtitle: Text(course.professorName),
+            trailing: const Icon(Icons.arrow_forward_ios),
             onTap: () {
-              // --- [แก้ไข] ส่ง "ค่าคะแนน" ไปให้หน้า CheckInScreen ด้วย! ---
+              // **[จุดที่แก้ไข]** เราจะส่งแค่ "course" ทั้งก้อนไป
+              // เพราะกฎกติกา (คะแนน) มันอยู่ใน course อยู่แล้ว
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (context) =>
-                      CheckInScreen(course: course, scores: _scores),
+                  builder: (context) => CheckInScreen(course: course),
                 ),
               );
             },
           );
         },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          final newCourse = await Navigator.of(context).push<Course>(
+            MaterialPageRoute(builder: (context) => const CreateCourseScreen()),
+          );
+
+          if (newCourse != null) {
+            setState(() {
+              _courses.add(newCourse);
+            });
+          }
+        },
+        backgroundColor: Colors.indigo,
+        foregroundColor: Colors.white,
+        child: const Icon(Icons.add),
       ),
     );
   }

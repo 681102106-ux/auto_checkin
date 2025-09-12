@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:qr_flutter/qr_flutter.dart'; // <<<--- 1. Import เครื่องมือวิเศษเข้ามา
 import '../models/course.dart';
 import '../models/student.dart';
 import '../models/attendance.dart';
 
 class CheckInScreen extends StatefulWidget {
   final Course course;
-  // We no longer need the separate 'scores' map here!
 
   const CheckInScreen({super.key, required this.course});
 
@@ -14,24 +14,21 @@ class CheckInScreen extends StatefulWidget {
 }
 
 class _CheckInScreenState extends State<CheckInScreen> {
-  // Mock data for students
+  // ... (โค้ดส่วน State อื่นๆ เหมือนเดิมเป๊ะ) ...
   final List<Student> _students = [
     Student(id: '68001', name: 'นายสมชาย ใจดี'),
     Student(id: '68002', name: 'นางสาวสมศรี มีสุข'),
-    Student(id: '68003', name: 'นายมานะ อดทน'),
   ];
   Map<String, AttendanceStatus> _attendanceData = {};
 
   @override
   void initState() {
     super.initState();
-    // Initialize attendance data for all students
     for (var student in _students) {
       _attendanceData[student.id] = AttendanceStatus.unknown;
     }
   }
 
-  // This function now correctly uses the scoring rules from the passed 'course' object
   double _getScoreForStatus(AttendanceStatus? status) {
     switch (status) {
       case AttendanceStatus.present:
@@ -47,6 +44,43 @@ class _CheckInScreenState extends State<CheckInScreen> {
     }
   }
 
+  // --- [โค้ดใหม่] ฟังก์ชันสำหรับแสดง Pop-up QR Code ---
+  void _showQrCodeDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        content: SizedBox(
+          width: 300,
+          child: Column(
+            mainAxisSize: MainAxisSize.min, // ทำให้ Column สูงเท่าที่จำเป็น
+            children: [
+              // 2. ใช้ QrImageView เพื่อสร้าง QR Code จาก ID ของคลาส
+              QrImageView(
+                data: widget.course.id, // ID ของคลาสคือข้อมูลที่เราจะเข้ารหัส
+                version: QrVersions.auto,
+                size: 200.0,
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Class Code',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              // 3. แสดง Class ID เป็น Text ให้นักเรียนกรอกได้ด้วย
+              SelectableText(widget.course.id),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+  // --- [จบโค้ดใหม่] ---
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -54,7 +88,17 @@ class _CheckInScreenState extends State<CheckInScreen> {
         title: Text(widget.course.name),
         backgroundColor: Colors.indigo,
         foregroundColor: Colors.white,
+        // --- [โค้ดใหม่] เพิ่มปุ่ม Action ที่มุมขวาบน ---
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.qr_code_2),
+            onPressed: _showQrCodeDialog, // 4. กดแล้วให้เรียกฟังก์ชันของเรา
+            tooltip: 'Show Class QR Code',
+          ),
+        ],
+        // --- [จบโค้ดใหม่] ---
       ),
+      // ... (โค้ดส่วน body และ FloatingActionButton เหมือนเดิมเป๊ะ) ...
       body: ListView.builder(
         itemCount: _students.length,
         itemBuilder: (context, index) {
@@ -126,7 +170,6 @@ class _CheckInScreenState extends State<CheckInScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
-          // TODO: Implement actual save logic
           print(_attendanceData);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('บันทึกการเช็คชื่อเรียบร้อย!')),

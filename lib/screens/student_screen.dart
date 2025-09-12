@@ -1,5 +1,6 @@
+import 'package:flutter/foundation.dart'; // <<<--- 1. Import เครื่องมือเช็ก Debug Mode
 import 'package:flutter/material.dart';
-import 'qr_scanner_screen.dart'; // <<<--- Import หน้าสแกนเข้ามา
+import 'qr_scanner_screen.dart';
 
 class StudentScreen extends StatefulWidget {
   const StudentScreen({super.key});
@@ -9,7 +10,9 @@ class StudentScreen extends StatefulWidget {
 }
 
 class _StudentScreenState extends State<StudentScreen> {
-  // --- [โค้ดใหม่] ฟังก์ชันสำหรับแสดง Pop-up ยืนยันการเช็คชื่อ ---
+  // --- [โค้ดใหม่] Controller สำหรับช่องกรอกทดสอบ ---
+  final _debugQrController = TextEditingController();
+
   void _showCheckInDialog(String classCode) {
     final studentIdController = TextEditingController();
     final studentNameController = TextEditingController();
@@ -21,11 +24,15 @@ class _StudentScreenState extends State<StudentScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('You are checking into class: $classCode'),
+            Text(
+              'You are checking into class:\n$classCode',
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: 16),
             TextField(
               controller: studentIdController,
               decoration: const InputDecoration(labelText: 'Your Student ID'),
+              autofocus: true,
             ),
             TextField(
               controller: studentNameController,
@@ -40,7 +47,7 @@ class _StudentScreenState extends State<StudentScreen> {
           ),
           TextButton(
             onPressed: () {
-              // TODO: Implement actual check-in logic
+              // TODO: Implement actual check-in logic in the future
               final studentId = studentIdController.text;
               final studentName = studentNameController.text;
               print(
@@ -59,7 +66,6 @@ class _StudentScreenState extends State<StudentScreen> {
       ),
     );
   }
-  // --- [จบโค้ดใหม่] ---
 
   @override
   Widget build(BuildContext context) {
@@ -75,7 +81,6 @@ class _StudentScreenState extends State<StudentScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // ... (ส่วนของ Icon และ Text ต้อนรับเหมือนเดิม) ...
               const Icon(Icons.school_outlined, size: 100, color: Colors.teal),
               const SizedBox(height: 20),
               const Text(
@@ -83,8 +88,6 @@ class _StudentScreenState extends State<StudentScreen> {
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 40),
-
-              // --- [โค้ดใหม่] ปุ่มสำหรับเริ่มสแกน ---
               ElevatedButton.icon(
                 icon: const Icon(Icons.qr_code_scanner),
                 label: const Text('Scan QR to Check-in'),
@@ -96,21 +99,42 @@ class _StudentScreenState extends State<StudentScreen> {
                   textStyle: const TextStyle(fontSize: 18),
                 ),
                 onPressed: () async {
-                  // เปิดหน้าสแกน และ "รอ" ผลลัพธ์ (รหัสที่สแกนได้) กลับมา
                   final scannedCode = await Navigator.of(context).push<String>(
                     MaterialPageRoute(
                       builder: (context) => const QrScannerScreen(),
                     ),
                   );
-
-                  // ถ้ารหัสที่สแกนได้ไม่ใช่ค่าว่าง
                   if (scannedCode != null && scannedCode.isNotEmpty) {
-                    // ให้แสดง Pop-up ยืนยัน
                     _showCheckInDialog(scannedCode);
                   }
                 },
               ),
-              // --- [จบโค้ดใหม่] ---
+
+              // --- [โค้ดใหม่] สร้าง "ประตูหลัง" สำหรับทดสอบ! ---
+              // kDebugMode จะเป็น 'true' เฉพาะตอนที่เรากำลังพัฒนาแอป
+              // เมื่อเรา Build แอปเป็นเวอร์ชันจริง ส่วนนี้จะหายไปเองอัตโนมัติ!
+              if (kDebugMode) ...[
+                const SizedBox(height: 40),
+                const Text('--- DEBUG ONLY ---'),
+                TextField(
+                  controller: _debugQrController,
+                  decoration: const InputDecoration(
+                    labelText: 'Paste QR Code Data Here',
+                  ),
+                ),
+                const SizedBox(height: 10),
+                ElevatedButton(
+                  child: const Text('Simulate Scan'),
+                  onPressed: () {
+                    final fakeScannedCode = _debugQrController.text;
+                    if (fakeScannedCode.isNotEmpty) {
+                      _showCheckInDialog(fakeScannedCode);
+                    }
+                  },
+                ),
+              ],
+
+              // --- [จบส่วนประตูหลัง] ---
             ],
           ),
         ),

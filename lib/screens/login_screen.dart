@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../models/user_role.dart'; // ตรวจสอบให้แน่ใจว่า path นี้ถูกต้อง
+import '../models/user_role.dart';
 import 'home_screen.dart';
 import 'student_screen.dart';
 
@@ -25,22 +25,42 @@ class _LoginScreenState extends State<LoginScreen> {
     final String userId = _idController.text;
     final String password = _passwordController.text;
 
-    print('Attempting login with User ID: $userId');
+    // --- [จุดที่แก้ไข] เปลี่ยนจากการบังคับ Role มาเป็นการตรวจสอบ ID/Pass ---
+    UserRole? userRole; // สร้างตัวแปร Role ที่อาจจะว่างได้ (nullable)
 
-    // สมมติว่าทุกคนที่ล็อกอินเป็น 'student'
-    const currentUserRole = UserRole.professor;
+    // ตรวจสอบเงื่อนไขของ Professor
+    if (userId == 'narasak' && password == '0') {
+      userRole = UserRole.professor;
+    }
+    // ตรวจสอบเงื่อนไขของ Student
+    else if (userId == '0' && password == '0') {
+      userRole = UserRole.student;
+    }
 
-    switch (currentUserRole) {
-      case UserRole.professor:
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-        );
-        break;
-      case UserRole.student:
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const StudentScreen()),
-        );
-        break;
+    // --- Logic การเปลี่ยนหน้า และจัดการ Error ---
+    if (userRole != null) {
+      // ถ้า Login ถูกต้อง (userRole ไม่ใช่ค่าว่าง)
+      switch (userRole) {
+        case UserRole.professor:
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const HomeScreen()),
+          );
+          break;
+        case UserRole.student:
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const StudentScreen()),
+          );
+          break;
+      }
+    } else {
+      // ถ้า Login ผิดพลาด (userRole ยังเป็นค่าว่างอยู่)
+      // ให้แสดง SnackBar แจ้งเตือน
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('รหัสประจำตัวหรือรหัสผ่านไม่ถูกต้อง!'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -54,54 +74,58 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.person_pin_circle_outlined,
-              size: 100,
-              color: Colors.indigo,
-            ),
-            const SizedBox(height: 40),
-            TextField(
-              controller: _idController,
-              decoration: InputDecoration(
-                labelText: 'รหัสประจำตัว',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                prefixIcon: const Icon(Icons.person),
+        child: SingleChildScrollView(
+          // ใช้ SingleChildScrollView ป้องกันคีย์บอร์ดล้น
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const SizedBox(height: 40),
+              const Icon(
+                Icons.person_pin_circle_outlined,
+                size: 100,
+                color: Colors.indigo,
               ),
-            ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: _passwordController,
-              obscureText: true,
-              decoration: InputDecoration(
-                labelText: 'รหัสผ่าน',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                prefixIcon: const Icon(Icons.lock),
-              ),
-            ),
-            const SizedBox(height: 40),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _handleLogin,
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: Colors.indigo,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
+              const SizedBox(height: 40),
+              TextField(
+                controller: _idController,
+                decoration: InputDecoration(
+                  labelText: 'รหัสประจำตัว',
+                  border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
+                  prefixIcon: const Icon(Icons.person),
                 ),
-                child: const Text('ล็อกอิน', style: TextStyle(fontSize: 18)),
               ),
-            ),
-          ],
+              const SizedBox(height: 20),
+              TextField(
+                controller: _passwordController,
+                obscureText: true,
+                decoration: InputDecoration(
+                  labelText: 'รหัสผ่าน',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  prefixIcon: const Icon(Icons.lock),
+                ),
+              ),
+              const SizedBox(height: 40),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _handleLogin,
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    backgroundColor: Colors.indigo,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text('ล็อกอิน', style: TextStyle(fontSize: 18)),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

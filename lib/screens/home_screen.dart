@@ -3,6 +3,7 @@ import '../models/course.dart';
 import '../models/scoring_rules.dart';
 import 'check_in_screen.dart';
 import 'create_course_screen.dart';
+import 'edit_course_screen.dart'; // <<<--- Import หน้า Edit เข้ามา
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -27,14 +28,29 @@ class _HomeScreenState extends State<HomeScreen> {
     ),
   ];
 
+  // --- [ฟังก์ชันใหม่] สำหรับเปิดหน้า Edit และรับข้อมูลกลับมา ---
+  void _editCourse(Course courseToEdit) async {
+    final updatedCourse = await Navigator.of(context).push<Course>(
+      MaterialPageRoute(
+        builder: (context) => EditCourseScreen(course: courseToEdit),
+      ),
+    );
+
+    if (updatedCourse != null) {
+      setState(() {
+        // หา index ของคลาสเก่า แล้วแทนที่ด้วยคลาสที่อัปเดตแล้ว
+        final index = _courses.indexWhere((c) => c.id == updatedCourse.id);
+        if (index != -1) {
+          _courses[index] = updatedCourse;
+        }
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('My Courses'),
-        backgroundColor: Colors.indigo,
-        foregroundColor: Colors.white,
-      ),
+      appBar: AppBar(title: const Text('My Courses')),
       body: ListView.builder(
         itemCount: _courses.length,
         itemBuilder: (context, index) {
@@ -43,10 +59,12 @@ class _HomeScreenState extends State<HomeScreen> {
             leading: const Icon(Icons.book, color: Colors.indigo),
             title: Text(course.name),
             subtitle: Text(course.professorName),
-            trailing: const Icon(Icons.arrow_forward_ios),
+            // --- [แก้ไข] เพิ่มปุ่ม Edit ที่ท้ายรายการ ---
+            trailing: IconButton(
+              icon: const Icon(Icons.edit, color: Colors.grey),
+              onPressed: () => _editCourse(course),
+            ),
             onTap: () {
-              // **[จุดที่แก้ไข]** เราจะส่งแค่ "course" ทั้งก้อนไป
-              // เพราะกฎกติกา (คะแนน) มันอยู่ใน course อยู่แล้ว
               Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (context) => CheckInScreen(course: course),
@@ -68,8 +86,6 @@ class _HomeScreenState extends State<HomeScreen> {
             });
           }
         },
-        backgroundColor: Colors.indigo,
-        foregroundColor: Colors.white,
         child: const Icon(Icons.add),
       ),
     );

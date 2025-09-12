@@ -28,7 +28,7 @@ class _LoginScreenState extends State<LoginScreen> {
     print('Attempting login with User ID: $userId');
 
     // สมมติว่าทุกคนที่ล็อกอินเป็น 'student'
-    const currentUserRole = UserRole.student;
+    const currentUserRole = UserRole.professor;
 
     switch (currentUserRole) {
       case UserRole.professor:

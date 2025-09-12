@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import '../models/course.dart';
-import '../models/scoring_rules.dart';
 import 'check_in_screen.dart';
 import 'create_course_screen.dart';
-import 'edit_course_screen.dart'; // <<<--- Import หน้า Edit เข้ามา
+import 'edit_course_screen.dart';
+import '../services/course_service.dart'; // <<<--- 1. Import พ่อครัวเข้ามา
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -13,22 +13,20 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final List<Course> _courses = [
-    Course(
-      id: 'CS101',
-      name: 'Introduction to Computer Science',
-      professorName: 'อ.นราศักดิ์',
-      scoringRules: ScoringRules(),
-    ),
-    Course(
-      id: 'MA101',
-      name: 'Calculus I',
-      professorName: 'อ.สมศรี',
-      scoringRules: ScoringRules(presentScore: 2.0, lateScore: 1.0),
-    ),
-  ];
+  // 2. สร้าง "พ่อครัว" ขึ้นมา 1 คน
+  final CourseService _courseService = CourseService();
 
-  // --- [ฟังก์ชันใหม่] สำหรับเปิดหน้า Edit และรับข้อมูลกลับมา ---
+  // 3. สร้าง "ถาดเสิร์ฟ" (State) เพื่อรอรับอาหารจากพ่อครัว
+  late List<Course> _courses;
+
+  @override
+  void initState() {
+    super.initState();
+    // 4. สั่งให้พ่อครัว "เตรียมอาหาร" (ดึงข้อมูล) ตั้งแต่แรก
+    _courses = _courseService.getCourses();
+  }
+
+  // ฟังก์ชันสำหรับเปิดหน้า Edit และรับข้อมูลกลับมา
   void _editCourse(Course courseToEdit) async {
     final updatedCourse = await Navigator.of(context).push<Course>(
       MaterialPageRoute(
@@ -38,11 +36,25 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (updatedCourse != null) {
       setState(() {
-        // หา index ของคลาสเก่า แล้วแทนที่ด้วยคลาสที่อัปเดตแล้ว
-        final index = _courses.indexWhere((c) => c.id == updatedCourse.id);
-        if (index != -1) {
-          _courses[index] = updatedCourse;
-        }
+        // 5. บอกให้พ่อครัว "อัปเดตเมนู"
+        _courseService.updateCourse(updatedCourse);
+        // แล้วเราก็ขอเมนูที่อัปเดตแล้วมาใส่ถาดเสิร์ฟใหม่
+        _courses = _courseService.getCourses();
+      });
+    }
+  }
+
+  // ฟังก์ชันสำหรับเปิดหน้า Create และรับข้อมูลกลับมา
+  void _addCourse() async {
+    final newCourse = await Navigator.of(context).push<Course>(
+      MaterialPageRoute(builder: (context) => const CreateCourseScreen()),
+    );
+
+    if (newCourse != null) {
+      setState(() {
+        // 6. บอกให้พ่อครัว "เพิ่มเมนูใหม่"
+        _courseService.addCourse(newCourse);
+        _courses = _courseService.getCourses();
       });
     }
   }
@@ -50,7 +62,12 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('My Courses')),
+      appBar: AppBar(
+        title: const Text('My Courses'),
+        backgroundColor: Colors.indigo,
+        foregroundColor: Colors.white,
+      ),
+      // UI ที่เหลือเหมือนเดิมเป๊ะ! พนักงานเสิร์ฟไม่ต้องเปลี่ยนวิธีทำงานเลย!
       body: ListView.builder(
         itemCount: _courses.length,
         itemBuilder: (context, index) {
@@ -59,7 +76,6 @@ class _HomeScreenState extends State<HomeScreen> {
             leading: const Icon(Icons.book, color: Colors.indigo),
             title: Text(course.name),
             subtitle: Text(course.professorName),
-            // --- [แก้ไข] เพิ่มปุ่ม Edit ที่ท้ายรายการ ---
             trailing: IconButton(
               icon: const Icon(Icons.edit, color: Colors.grey),
               onPressed: () => _editCourse(course),
@@ -75,17 +91,9 @@ class _HomeScreenState extends State<HomeScreen> {
         },
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final newCourse = await Navigator.of(context).push<Course>(
-            MaterialPageRoute(builder: (context) => const CreateCourseScreen()),
-          );
-
-          if (newCourse != null) {
-            setState(() {
-              _courses.add(newCourse);
-            });
-          }
-        },
+        onPressed: _addCourse,
+        backgroundColor: Colors.indigo,
+        foregroundColor: Colors.white,
         child: const Icon(Icons.add),
       ),
     );

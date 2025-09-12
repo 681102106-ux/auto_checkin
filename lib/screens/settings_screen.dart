@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 class SettingsScreen extends StatefulWidget {
-  // --- [โค้ดใหม่] สร้าง "ช่องรับ" ข้อมูลจาก HomeScreen ---
   final Map<String, double> initialScores;
   final Function(Map<String, double>) onScoresUpdated;
 
@@ -16,27 +15,58 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  // --- [โค้ดใหม่] State ตอนนี้จะคัดลอกค่ามาจาก "ช่องรับ" ---
-  late Map<String, double> _currentScores;
+  late Map<String, double> _scores;
 
   @override
   void initState() {
     super.initState();
-    // คัดลอกค่าเริ่มต้นที่ได้รับมาเก็บไว้ใน State ของหน้านี้
-    _currentScores = Map.from(widget.initialScores);
+    _scores = Map<String, double>.from(widget.initialScores);
   }
 
-  // ... (ฟังก์ชัน _showEditScoreDialog เหมือนเดิมเป๊ะ)
   Future<void> _showEditScoreDialog(
     String title,
-    String key,
     double currentValue,
     Function(double) onSave,
   ) async {
     final TextEditingController scoreController = TextEditingController(
       text: currentValue.toString(),
     );
-    // ... โค้ดส่วนที่เหลือของ Dialog เหมือนเดิม ...
+
+    return showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('แก้ไขคะแนนสำหรับ "$title"'),
+          content: TextField(
+            controller: scoreController,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: const InputDecoration(
+              labelText: 'คะแนนใหม่',
+              border: OutlineInputBorder(),
+            ),
+            autofocus: true,
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('ยกเลิก'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: const Text('บันทึก'),
+              onPressed: () {
+                final double? newScore = double.tryParse(scoreController.text);
+                if (newScore != null) {
+                  onSave(newScore);
+                }
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -44,42 +74,81 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settings'),
-        // --- [โค้ดใหม่] เพิ่มปุ่ม Save เพื่อส่งค่ากลับไปที่ HomeScreen ---
+        backgroundColor: Colors.indigo,
+        foregroundColor: Colors.white,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.save),
+          TextButton(
             onPressed: () {
-              // เรียกใช้ฟังก์ชันที่ได้รับมาจาก HomeScreen เพื่อส่งค่าใหม่กลับไป
-              widget.onScoresUpdated(_currentScores);
-              // แสดง SnackBar เพื่อยืนยัน
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('บันทึกการตั้งค่าแล้ว!')),
-              );
-              Navigator.of(context).pop(); // กลับไปหน้า Home
+              widget.onScoresUpdated(_scores);
+              Navigator.of(context).pop();
             },
+            child: const Text('Save', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
       body: ListView(
         children: [
-          // --- [แก้ไข] แก้ไข ListTile ทั้งหมดให้ใช้ State ใหม่ ---
           ListTile(
+            leading: const Icon(
+              Icons.check_circle_outline,
+              color: Colors.green,
+            ),
             title: const Text('มาเรียน'),
-            trailing: Text('${_currentScores['present']} คะแนน'),
+            trailing: Text('${_scores['present'] ?? 1.0} คะแนน'),
             onTap: () {
-              _showEditScoreDialog(
-                'มาเรียน',
-                'present',
-                _currentScores['present']!,
-                (newScore) {
-                  setState(() {
-                    _currentScores['present'] = newScore;
-                  });
-                },
-              );
+              _showEditScoreDialog('มาเรียน', _scores['present'] ?? 1.0, (
+                newScore,
+              ) {
+                setState(() {
+                  _scores['present'] = newScore;
+                });
+              });
             },
           ),
-          // ... (แก้ไข ListTile ของ ขาด, ลา, สาย ในลักษณะเดียวกัน)
+          ListTile(
+            leading: const Icon(Icons.cancel_outlined, color: Colors.red),
+            title: const Text('ขาด'),
+            trailing: Text('${_scores['absent'] ?? 0.0} คะแนน'),
+            onTap: () {
+              _showEditScoreDialog('ขาด', _scores['absent'] ?? 0.0, (newScore) {
+                setState(() {
+                  _scores['absent'] = newScore;
+                });
+              });
+            },
+          ),
+          ListTile(
+            leading: const Icon(
+              Icons.description_outlined,
+              color: Colors.orange,
+            ),
+            title: const Text('ลา'),
+            trailing: Text('${_scores['onLeave'] ?? 0.5} คะแนน'),
+            onTap: () {
+              _showEditScoreDialog('ลา', _scores['onLeave'] ?? 0.5, (newScore) {
+                setState(() {
+                  _scores['onLeave'] = newScore;
+                });
+              });
+            },
+          ),
+          ListTile(
+            leading: const Icon(
+              Icons.watch_later_outlined,
+              color: Colors.blueGrey,
+            ),
+            title: const Text('มาสาย'),
+            trailing: Text('${_scores['late'] ?? 0.75} คะแนน'),
+            onTap: () {
+              _showEditScoreDialog('มาสาย', _scores['late'] ?? 0.75, (
+                newScore,
+              ) {
+                setState(() {
+                  _scores['late'] = newScore;
+                });
+              });
+            },
+          ),
         ],
       ),
     );

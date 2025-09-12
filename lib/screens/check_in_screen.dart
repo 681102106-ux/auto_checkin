@@ -5,8 +5,9 @@ import '../models/attendance.dart'; // Import Attendance Model
 
 class CheckInScreen extends StatefulWidget {
   final Course course;
+  final Map<String, double> scores;
 
-  const CheckInScreen({super.key, required this.course});
+  const CheckInScreen({super.key, required this.course, required this.scores});
 
   @override
   State<CheckInScreen> createState() => _CheckInScreenState();
@@ -69,6 +70,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
                     ),
                   ),
                   const Divider(),
+
                   // --- ส่วนของ Radio Button ---
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -92,6 +94,16 @@ class _CheckInScreenState extends State<CheckInScreen> {
                         student.id,
                         AttendanceStatus.late,
                         'สาย',
+                      ),
+                      const SizedBox(height: 8), // เพิ่มระยะห่างนิดหน่อย
+                      // เราจะใช้ widget.scores เพื่อดึงค่าคะแนนที่ถูกส่งเข้ามา
+                      Text(
+                        'คะแนนที่ได้รับ: ${_getScoreForStatus(_attendanceData[student.id])}',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: Colors.blueGrey,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ],
                   ),
@@ -141,4 +153,22 @@ class _CheckInScreenState extends State<CheckInScreen> {
       ],
     );
   }
+
+  double _getScoreForStatus(AttendanceStatus? status) {
+    // widget.scores คือการเข้าถึง "scores" ที่ถูกส่งมาจาก HomeScreen
+    switch (status) {
+      case AttendanceStatus.present:
+        return widget.scores['present'] ?? 0;
+      case AttendanceStatus.absent:
+        return widget.scores['absent'] ?? 0;
+      case AttendanceStatus.onLeave:
+        return widget.scores['onLeave'] ?? 0;
+      case AttendanceStatus.late:
+        return widget.scores['late'] ?? 0;
+      default:
+        return 0; // กรณีที่ไม่พบสถานะ (เช่น unknown)
+    }
+  }
+
+  // ---------------------------------
 }

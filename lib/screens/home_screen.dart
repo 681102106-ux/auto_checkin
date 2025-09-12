@@ -11,8 +11,22 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // 3. สร้าง "ข้อมูลจำลอง" (Mock Data) สำหรับรายวิชา
-  // ในอนาคต เราจะไปดึงข้อมูลนี้มาจากฐานข้อมูลจริงๆ
+  // --- [โค้ดใหม่] ย้าย "ขุมทรัพย์" (ค่าคะแนน) มาไว้ที่นี่! ---
+  Map<String, double> _scores = {
+    'present': 1.0,
+    'absent': 0.0,
+    'onLeave': 0.5,
+    'late': 0.75,
+  };
+
+  // --- [โค้ดใหม่] สร้างฟังก์ชันสำหรับให้หน้า Settings เรียกใช้เพื่ออัปเดตคะแนน ---
+  void _updateScores(Map<String, double> newScores) {
+    setState(() {
+      _scores = newScores;
+    });
+  }
+
+  // ... (ข้อมูลจำลองของรายวิชาเหมือนเดิม)
   final List<Course> _courses = [
     Course(
       id: 'CS101',
@@ -24,8 +38,6 @@ class _HomeScreenState extends State<HomeScreen> {
       name: 'Data Structures and Algorithms',
       professorName: 'อ.นราศักดิ์',
     ),
-    Course(id: 'CS305', name: 'Web Development', professorName: 'อ.สมชาย'),
-    Course(id: 'MA101', name: 'Calculus I', professorName: 'อ.สมศรี'),
   ];
 
   @override
@@ -33,36 +45,36 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Courses'),
-        backgroundColor: Colors.indigo,
-        foregroundColor: Colors.white,
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () {
-              // 7. เมื่อกดปุ่ม Settings ให้ "ส่งข้อมูลวิชา" ไปยังหน้า SettingsScreen
+              // --- [แก้ไข] ส่ง "ค่าคะแนน" และ "ฟังก์ชันอัปเดต" ไปให้หน้า Settings ---
               Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                MaterialPageRoute(
+                  builder: (context) => SettingsScreen(
+                    initialScores: _scores,
+                    onScoresUpdated: _updateScores,
+                  ),
+                ),
               );
             },
           ),
         ],
       ),
-      // 4. ใช้ ListView.builder เพื่อสร้างลิสต์ที่มีประสิทธิภาพ
       body: ListView.builder(
-        itemCount: _courses.length, // บอก ListView ว่ามีกี่รายการ
+        itemCount: _courses.length,
         itemBuilder: (context, index) {
           final course = _courses[index];
-          // 5. ใช้ ListTile ในการแสดงผลแต่ละรายการ
           return ListTile(
-            leading: const Icon(Icons.book),
             title: Text(course.name),
             subtitle: Text(course.professorName),
-            trailing: const Icon(Icons.arrow_forward_ios),
             onTap: () {
-              // 6. เมื่อกดที่รายวิชา ให้ "ส่งข้อมูลวิชา" ไปยังหน้า CheckInScreen
+              // --- [แก้ไข] ส่ง "ค่าคะแนน" ไปให้หน้า CheckInScreen ด้วย! ---
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (context) => CheckInScreen(course: course),
+                  builder: (context) =>
+                      CheckInScreen(course: course, scores: _scores),
                 ),
               );
             },

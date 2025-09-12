@@ -5,9 +5,14 @@ import '../models/attendance.dart';
 
 class CheckInScreen extends StatefulWidget {
   final Course course;
+  // เพิ่มช่องรับคะแนน
   final Map<String, double> scores;
 
-  const CheckInScreen({super.key, required this.course, required this.scores});
+  const CheckInScreen({
+    super.key,
+    required this.course,
+    required this.scores, // เพิ่มเข้ามาใน constructor
+  });
 
   @override
   State<CheckInScreen> createState() => _CheckInScreenState();
@@ -18,8 +23,6 @@ class _CheckInScreenState extends State<CheckInScreen> {
     Student(id: '68001', name: 'นายสมชาย ใจดี'),
     Student(id: '68002', name: 'นางสาวสมศรี มีสุข'),
     Student(id: '68003', name: 'นายมานะ อดทน'),
-    Student(id: '68004', name: 'นางสาวปิติ ยินดี'),
-    Student(id: '68005', name: 'เด็กหญิงอารี รักเรียน'),
   ];
 
   Map<String, AttendanceStatus> _attendanceData = {};
@@ -28,7 +31,25 @@ class _CheckInScreenState extends State<CheckInScreen> {
   void initState() {
     super.initState();
     for (var student in _students) {
-      _attendanceData[student.id] = AttendanceStatus.present;
+      // ตั้งค่าเริ่มต้นเป็น unknown ตามที่คุณทำไว้
+      _attendanceData[student.id] = AttendanceStatus.unknown;
+    }
+  }
+
+  // --- [เพิ่มเข้ามา] ฟังก์ชันผู้ช่วยแปลงสถานะเป็นคะแนน ---
+  double _getScoreForStatus(AttendanceStatus? status) {
+    // widget.scores คือการเข้าถึง "scores" ที่ถูกส่งมาจาก HomeScreen
+    switch (status) {
+      case AttendanceStatus.present:
+        return widget.scores['present'] ?? 0;
+      case AttendanceStatus.absent:
+        return widget.scores['absent'] ?? 0;
+      case AttendanceStatus.onLeave:
+        return widget.scores['onLeave'] ?? 0;
+      case AttendanceStatus.late:
+        return widget.scores['late'] ?? 0;
+      default:
+        return 0; // กรณีที่ไม่พบสถานะ (เช่น unknown)
     }
   }
 
@@ -61,8 +82,6 @@ class _CheckInScreenState extends State<CheckInScreen> {
                   ),
                   const Divider(),
                   Row(
-                    // [FIX 1] แก้ไข UI ที่ไม่สมดุล
-                    // เราจะใช้ Expanded เพื่อให้แต่ละตัวเลือกมีขนาดเท่ากัน
                     children: [
                       Expanded(
                         child: _buildStatusOption(
@@ -94,6 +113,18 @@ class _CheckInScreenState extends State<CheckInScreen> {
                       ),
                     ],
                   ),
+                  // --- [เพิ่มเข้ามา] ส่วนแสดงคะแนนเพื่อ "พิสูจน์" ---
+                  const SizedBox(height: 8),
+                  Center(
+                    child: Text(
+                      'คะแนนที่ได้รับ: ${_getScoreForStatus(_attendanceData[student.id])}',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: Colors.blueGrey,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -109,8 +140,6 @@ class _CheckInScreenState extends State<CheckInScreen> {
         },
         label: const Text('บันทึก'),
         icon: const Icon(Icons.save),
-        backgroundColor: Colors.indigo,
-        foregroundColor: Colors.white,
       ),
     );
   }
@@ -127,7 +156,9 @@ class _CheckInScreenState extends State<CheckInScreen> {
           groupValue: _attendanceData[studentId],
           onChanged: (AttendanceStatus? value) {
             setState(() {
-              _attendanceData[studentId] = value!;
+              if (value != null) {
+                _attendanceData[studentId] = value;
+              }
             });
           },
         ),

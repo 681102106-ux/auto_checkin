@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 class SettingsScreen extends StatefulWidget {
+  // สร้าง "ช่องรับ" ข้อมูลจาก HomeScreen
   final Map<String, double> initialScores;
   final Function(Map<String, double>) onScoresUpdated;
 
@@ -15,21 +16,25 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  late Map<String, double> _scores;
+  // State ตอนนี้จะคัดลอกค่ามาจาก "ช่องรับ"
+  // 'late' หมายถึงเราจะกำหนดค่าให้มันทีหลังใน initState
+  late Map<String, double> _currentScores;
 
   @override
   void initState() {
     super.initState();
-    _scores = Map<String, double>.from(widget.initialScores);
+    // คัดลอกค่าเริ่มต้นที่ได้รับมา (widget.initialScores) เก็บไว้ใน State ของหน้านี้
+    _currentScores = Map.from(widget.initialScores);
   }
 
+  // ฟังก์ชันช่วยสร้าง Pop-up (เหมือนเดิม)
   Future<void> _showEditScoreDialog(
     String title,
-    double currentValue,
+    String key,
     Function(double) onSave,
   ) async {
     final TextEditingController scoreController = TextEditingController(
-      text: currentValue.toString(),
+      text: _currentScores[key].toString(),
     );
 
     return showDialog<void>(
@@ -40,18 +45,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
           content: TextField(
             controller: scoreController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(
-              labelText: 'คะแนนใหม่',
-              border: OutlineInputBorder(),
-            ),
+            decoration: const InputDecoration(labelText: 'คะแนนใหม่'),
             autofocus: true,
           ),
           actions: <Widget>[
             TextButton(
               child: const Text('ยกเลิก'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
+              onPressed: () => Navigator.of(context).pop(),
             ),
             TextButton(
               child: const Text('บันทึก'),
@@ -76,31 +76,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
         title: const Text('Settings'),
         backgroundColor: Colors.indigo,
         foregroundColor: Colors.white,
+        // เพิ่มปุ่ม Save เพื่อส่งค่ากลับไปที่ HomeScreen
         actions: [
-          TextButton(
+          IconButton(
+            icon: const Icon(Icons.save),
             onPressed: () {
-              widget.onScoresUpdated(_scores);
-              Navigator.of(context).pop();
+              // เรียกใช้ฟังก์ชันที่ได้รับมาจาก HomeScreen เพื่อส่งค่าใหม่กลับไป
+              widget.onScoresUpdated(_currentScores);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('บันทึกการตั้งค่าเรียบร้อย!')),
+              );
+              Navigator.of(context).pop(); // กลับไปหน้า Home
             },
-            child: const Text('Save', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
       body: ListView(
         children: [
+          // แก้ไข ListTile ทั้งหมดให้ใช้ State ใหม่ (_currentScores)
           ListTile(
             leading: const Icon(
               Icons.check_circle_outline,
               color: Colors.green,
             ),
             title: const Text('มาเรียน'),
-            trailing: Text('${_scores['present'] ?? 1.0} คะแนน'),
+            trailing: Text('${_currentScores['present']} คะแนน'),
             onTap: () {
-              _showEditScoreDialog('มาเรียน', _scores['present'] ?? 1.0, (
-                newScore,
-              ) {
+              _showEditScoreDialog('มาเรียน', 'present', (newScore) {
                 setState(() {
-                  _scores['present'] = newScore;
+                  _currentScores['present'] = newScore;
                 });
               });
             },
@@ -108,11 +112,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ListTile(
             leading: const Icon(Icons.cancel_outlined, color: Colors.red),
             title: const Text('ขาด'),
-            trailing: Text('${_scores['absent'] ?? 0.0} คะแนน'),
+            trailing: Text('${_currentScores['absent']} คะแนน'),
             onTap: () {
-              _showEditScoreDialog('ขาด', _scores['absent'] ?? 0.0, (newScore) {
+              _showEditScoreDialog('ขาด', 'absent', (newScore) {
                 setState(() {
-                  _scores['absent'] = newScore;
+                  _currentScores['absent'] = newScore;
                 });
               });
             },
@@ -123,11 +127,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               color: Colors.orange,
             ),
             title: const Text('ลา'),
-            trailing: Text('${_scores['onLeave'] ?? 0.5} คะแนน'),
+            trailing: Text('${_currentScores['onLeave']} คะแนน'),
             onTap: () {
-              _showEditScoreDialog('ลา', _scores['onLeave'] ?? 0.5, (newScore) {
+              _showEditScoreDialog('ลา', 'onLeave', (newScore) {
                 setState(() {
-                  _scores['onLeave'] = newScore;
+                  _currentScores['onLeave'] = newScore;
                 });
               });
             },
@@ -138,13 +142,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               color: Colors.blueGrey,
             ),
             title: const Text('มาสาย'),
-            trailing: Text('${_scores['late'] ?? 0.75} คะแนน'),
+            trailing: Text('${_currentScores['late']} คะแนน'),
             onTap: () {
-              _showEditScoreDialog('มาสาย', _scores['late'] ?? 0.75, (
-                newScore,
-              ) {
+              _showEditScoreDialog('มาสาย', 'late', (newScore) {
                 setState(() {
-                  _scores['late'] = newScore;
+                  _currentScores['late'] = newScore;
                 });
               });
             },

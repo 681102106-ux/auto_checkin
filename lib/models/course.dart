@@ -6,27 +6,28 @@ class Course {
   final String name;
   final String professorName;
   final ScoringRules scoringRules;
-  final String professorId; // <<<--- เพิ่ม: ID ของอาจารย์เจ้าของคลาส
+  final String professorId; // ID ของอาจารย์เจ้าของคลาส
 
   Course({
     required this.id,
     required this.name,
     required this.professorName,
     required this.scoringRules,
-    required this.professorId, // <<<--- เพิ่ม
+    required this.professorId,
   });
 
-  // --- [โค้ดใหม่] เครื่องมือแปลง Object เป็น Map เพื่อส่งให้ Firestore ---
+  // เครื่องมือแปลง Object เป็น Map เพื่อส่งให้ Firestore
   Map<String, dynamic> toJson() {
     return {
       'name': name,
       'professorName': professorName,
       'professorId': professorId,
-      'scoringRules': scoringRules.toJson(),
+      'scoringRules': scoringRules
+          .toJson(), // <<<--- เรียกใช้ toJson ของ scoringRules
     };
   }
 
-  // --- [โค้ดใหม่] เครื่องมือแปลงข้อมูลจาก Firestore กลับเป็น Object ---
+  // เครื่องมือแปลงข้อมูลจาก Firestore กลับเป็น Object
   factory Course.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data()!;
     return Course(
@@ -34,7 +35,9 @@ class Course {
       name: data['name'] ?? '',
       professorName: data['professorName'] ?? '',
       professorId: data['professorId'] ?? '',
-      scoringRules: ScoringRules.fromJson(data['scoringRules'] ?? {}),
+      scoringRules: ScoringRules.fromJson(
+        data['scoringRules'] ?? {},
+      ), // <<<--- เรียกใช้ fromJson ของ scoringRules
     );
   }
 }

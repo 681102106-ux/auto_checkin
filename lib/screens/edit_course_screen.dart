@@ -1,8 +1,9 @@
+import 'package:auto_checkin/services/course_service.dart'; // <<<--- 1. Import พ่อครัวเข้ามา
 import 'package:flutter/material.dart';
 import '../models/course.dart';
+import '../models/scoring_rules.dart';
 
 class EditCourseScreen extends StatefulWidget {
-  // รับคลาสที่ต้องการแก้ไขเข้ามา
   final Course course;
 
   const EditCourseScreen({super.key, required this.course});
@@ -14,63 +15,44 @@ class EditCourseScreen extends StatefulWidget {
 class _EditCourseScreenState extends State<EditCourseScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  // สร้าง Controller และกำหนดค่าเริ่มต้นจากข้อมูลเก่า
+  // --- 2. สร้าง Controller สำหรับทุกช่องกรอก ---
   late TextEditingController _courseNameController;
   late TextEditingController _profNameController;
-  late TextEditingController _presentScoreController;
-  late TextEditingController _absentScoreController;
-  late TextEditingController _onLeaveScoreController;
-  late TextEditingController _lateScoreController;
+  // เราจะใช้ ScoringRules object โดยตรง ไม่ต้องมี controller แยก
+  late ScoringRules _scoringRules;
 
   @override
   void initState() {
     super.initState();
-    // นำข้อมูลของ course ที่รับเข้ามา มาใส่ใน Controller
+    // 3. กำหนดค่าเริ่มต้นให้ Controller จากข้อมูลคลาสที่รับเข้ามา
     _courseNameController = TextEditingController(text: widget.course.name);
     _profNameController = TextEditingController(
       text: widget.course.professorName,
     );
-    _presentScoreController = TextEditingController(
-      text: widget.course.scoringRules.presentScore.toString(),
-    );
-    _absentScoreController = TextEditingController(
-      text: widget.course.scoringRules.absentScore.toString(),
-    );
-    _onLeaveScoreController = TextEditingController(
-      text: widget.course.scoringRules.onLeaveScore.toString(),
-    );
-    _lateScoreController = TextEditingController(
-      text: widget.course.scoringRules.lateScore.toString(),
-    );
+    // สร้างสำเนาของ scoring rules เพื่อให้แก้ไขได้โดยไม่กระทบของเดิมทันที
+    _scoringRules = ScoringRules.fromJson(widget.course.scoringRules.toJson());
   }
 
   @override
   void dispose() {
-    // อย่าลืม dispose controller ทั้งหมด
     _courseNameController.dispose();
     _profNameController.dispose();
-    _presentScoreController.dispose();
-    _absentScoreController.dispose();
-    _onLeaveScoreController.dispose();
-    _lateScoreController.dispose();
     super.dispose();
   }
 
-  void _saveForm() {
+  // --- 4. สร้างฟังก์ชัน _saveChanges ขึ้นมา ---
+  void _saveChanges() {
     if (_formKey.currentState!.validate()) {
-      _formKey.currentState!.save();
-
       final updatedCourse = Course(
         id: widget.course.id, // ใช้ ID เดิม
-        name: _courseName,
-        professorName: _professorName,
+        name: _courseNameController.text, // อ่านค่าจาก Controller
+        professorName: _profNameController.text, // อ่านค่าจาก Controller
         professorId: widget.course.professorId, // ใช้ professorId เดิม
-        scoringRules: _scoringRules,
+        scoringRules: _scoringRules, // ใช้ scoring rules ที่อัปเดตแล้ว
       );
 
-      // เรียกใช้ Service ตัวใหม่
       CourseService().updateCourse(updatedCourse).then((_) {
-        Navigator.of(context).pop();
+        Navigator.of(context).pop(); // กลับไปหน้า Home
       });
     }
   }
@@ -102,28 +84,36 @@ class _EditCourseScreenState extends State<EditCourseScreen> {
               style: Theme.of(context).textTheme.titleLarge,
             ),
             TextFormField(
-              controller: _presentScoreController,
+              initialValue: _scoringRules.presentScore.toString(),
               decoration: const InputDecoration(labelText: 'Present Score'),
               keyboardType: TextInputType.number,
+              onChanged: (value) =>
+                  _scoringRules.presentScore = double.tryParse(value) ?? 1.0,
             ),
             TextFormField(
-              controller: _absentScoreController,
+              initialValue: _scoringRules.absentScore.toString(),
               decoration: const InputDecoration(labelText: 'Absent Score'),
               keyboardType: TextInputType.number,
+              onChanged: (value) =>
+                  _scoringRules.absentScore = double.tryParse(value) ?? 0.0,
             ),
             TextFormField(
-              controller: _onLeaveScoreController,
+              initialValue: _scoringRules.onLeaveScore.toString(),
               decoration: const InputDecoration(labelText: 'On Leave Score'),
               keyboardType: TextInputType.number,
+              onChanged: (value) =>
+                  _scoringRules.onLeaveScore = double.tryParse(value) ?? 0.5,
             ),
             TextFormField(
-              controller: _lateScoreController,
+              initialValue: _scoringRules.lateScore.toString(),
               decoration: const InputDecoration(labelText: 'Late Score'),
               keyboardType: TextInputType.number,
+              onChanged: (value) =>
+                  _scoringRules.lateScore = double.tryParse(value) ?? 0.75,
             ),
             const SizedBox(height: 32),
             ElevatedButton(
-              onPressed: _saveChanges,
+              onPressed: _saveChanges, // <<<--- 5. เรียกใช้ฟังก์ชันที่ถูกต้อง
               child: const Text('Save Changes'),
             ),
           ],

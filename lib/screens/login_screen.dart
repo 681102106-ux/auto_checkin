@@ -1,6 +1,8 @@
 import 'package:auto_checkin/screens/signup_screen.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // <<<--- แก้ไขที่อยู่ตรงนี้ให้ถูกต้อง
 import 'package:flutter/material.dart';
+import 'home_screen.dart';
+import 'student_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -21,10 +23,19 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       // AuthGate จะจัดการเรื่องการเปลี่ยนหน้าให้เอง
     } on FirebaseAuthException catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.message ?? "Login failed")));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.message ?? "Login failed")));
+      }
     }
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 
   @override

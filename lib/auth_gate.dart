@@ -1,6 +1,7 @@
+import 'package:auto_checkin/screens/home_screen.dart';
 import 'package:auto_checkin/screens/login_screen.dart';
-import 'package:auto_checkin/screens/student_screen.dart'; // <<<--- หมายเหตุ*
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:auto_checkin/screens/student_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // <<<--- แก้ไขที่อยู่ตรงนี้ให้ถูกต้อง
 import 'package:flutter/material.dart';
 
 class AuthGate extends StatelessWidget {
@@ -9,18 +10,15 @@ class AuthGate extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
-      // ฟังการเปลี่ยนแปลงสถานะการล็อกอินจาก Firebase
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
-        // ถ้ายังไม่มีข้อมูล (กำลังเช็ก) ให้แสดงหน้าจอโหลด
         if (!snapshot.hasData) {
           return const LoginScreen();
         }
 
-        // ถ้ามีข้อมูล (ล็อกอินแล้ว) ให้ไปที่หน้าแอปหลัก
-        // *หมายเหตุ: ตอนนี้เราจะให้ทุกคนไปที่หน้า Student ก่อน
-        // ในเฟสต่อไป เราจะทำให้มันฉลาดขึ้นและแยก Role ได้
-        return const StudentScreen();
+        // TODO: In the future, we will check user roles here.
+        // For now, we assume every logged-in user is a student.
+        return const HomeScreen();
       },
     );
   }

@@ -1,4 +1,4 @@
-import 'package.firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // <<<--- แก้ไขที่อยู่ตรงนี้ให้ถูกต้อง
 import 'package:flutter/material.dart';
 
 class SignUpScreen extends StatefulWidget {
@@ -14,19 +14,25 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   Future<void> _signUp() async {
     try {
-      // ใช้ Firebase Auth สร้าง User ใหม่ด้วย Email และ Password
       await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
-      // ถ้าสมัครสำเร็จ หน้านี้จะถูกปิดอัตโนมัติโดย AuthGate
       if (mounted) Navigator.of(context).pop();
     } on FirebaseAuthException catch (e) {
-      // แสดง Error Message ถ้าสมัครไม่สำเร็จ
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.message ?? "Sign up failed")));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.message ?? "Sign up failed")));
+      }
     }
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 
   @override

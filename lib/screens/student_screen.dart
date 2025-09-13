@@ -35,8 +35,9 @@ class _StudentScreenState extends State<StudentScreen> {
             TextButton(
               child: const Text('Logout'),
               onPressed: () {
-                Navigator.of(context).pushReplacement(
+                Navigator.of(context).pushAndRemoveUntil(
                   MaterialPageRoute(builder: (context) => const LoginScreen()),
+                  (route) => false,
                 );
               },
             ),

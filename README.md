@@ -1,16 +1,13 @@
-# auto_checkin
+# Auto Check-In Application
 
-A new Flutter project.
+This Flutter application is designed to facilitate attendance management for classes. Users can create classes, check in for attendance, and manage scores for students.
 
-## Getting Started
+## Features
 
-This project is a starting point for a Flutter application.
+- **User Authentication**: Users can log in to access the application.
+- **Class Management**: Users can create and edit classes.
+- **Attendance Tracking**: Users can check in for classes and manage attendance records.
+- **Score Management**: Users can set and manage scores for students.
 
-A few resources to get you started if this is your first Flutter project:
+## Project Structure
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.

@@ -46,8 +46,9 @@ class _HomeScreenState extends State<HomeScreen> {
               child: const Text('Logout'),
               onPressed: () {
                 // แทนที่หน้าปัจจุบันทั้งหมดด้วยหน้า Login
-                Navigator.of(context).pushReplacement(
+                Navigator.of(context).pushAndRemoveUntil(
                   MaterialPageRoute(builder: (context) => const LoginScreen()),
+                  (route) => false,
                 );
               },
             ),

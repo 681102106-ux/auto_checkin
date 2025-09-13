@@ -1,7 +1,14 @@
+import 'package:auto_checkin/firebase_options.dart'; // <<<--- 1. Import ไฟล์ที่ถูกสร้างขึ้นมา
+import 'package:auto_checkin/screens/login_screen.dart';
 import 'package:flutter/material.dart';
-import 'screens/login_screen.dart';
+import 'package:firebase_core/firebase_core.dart'; // <<<--- 2. Import ปลั๊กของเรา
 
-void main() {
+// 3. เปลี่ยน main ให้เป็น async และเพิ่มโค้ด Initialize
+Future<void> main() async {
+  // 4. ตรวจสอบให้แน่ใจว่า Widget ทั้งหมดพร้อมใช้งานก่อนเริ่มแอป
+  WidgetsFlutterBinding.ensureInitialized();
+  // 5. "เปิดสวิตช์" Firebase โดยใช้ข้อมูลจาก firebase_options.dart
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const MyApp());
 }
 
@@ -12,7 +19,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Check-in App',
-      theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
+      theme: ThemeData(primarySwatch: Colors.indigo, useMaterial3: true),
       home: const LoginScreen(),
     );
   }

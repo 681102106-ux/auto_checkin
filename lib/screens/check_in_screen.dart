@@ -19,7 +19,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
     Student(id: '68001', name: 'นายสมชาย ใจดี'),
     Student(id: '68002', name: 'นางสาวสมศรี มีสุข'),
   ];
-  Map<String, AttendanceStatus> _attendanceData = {};
+  final Map<String, AttendanceStatus> _attendanceData = {};
 
   @override
   void initState() {

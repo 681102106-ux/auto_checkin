@@ -12,30 +12,36 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _isLoading = false; // <<<--- 1. เพิ่ม State สำหรับสถานะโหลด
+  bool _isLoading = false;
 
   Future<void> _signIn() async {
+    // ป้องกันการกดปุ่มซ้ำซ้อนขณะกำลังโหลด
+    if (_isLoading) return;
+
     setState(() {
-      _isLoading = true; // <<<--- 2. เริ่มโหลด: แสดงวงกลมหมุน
+      _isLoading = true;
     });
 
     try {
+      // เมื่อล็อกอินสำเร็จ เราไม่ต้องทำอะไรต่อเลย
+      // เพราะ AuthGate ที่คอย "ฟัง" อยู่ จะจัดการเปลี่ยนหน้าให้เราเอง
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
+      // ไม่ต้องมี setState((){ _isLoading = false; }) ตรงนี้แล้ว
     } on FirebaseAuthException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.message ?? "Login failed")));
-      }
-    } finally {
+      // เราจะหยุดโหลดก็ต่อเมื่อเกิด Error เท่านั้น
       if (mounted) {
         setState(() {
-          _isLoading =
-              false; // <<<--- 3. โหลดเสร็จ: ซ่อนวงกลมหมุน (ไม่ว่าจะสำเร็จหรือล้มเหลว)
+          _isLoading = false;
         });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.message ?? "Login failed"),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }
@@ -72,7 +78,6 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 40),
 
-            // <<<--- 4. ถ้ากำลังโหลด ให้แสดงวงกลมหมุน ถ้าไม่ ก็แสดงปุ่มเหมือนเดิม
             _isLoading
                 ? const CircularProgressIndicator()
                 : ElevatedButton(
@@ -80,14 +85,18 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: const Text('Login'),
                   ),
 
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (context) => const SignUpScreen()),
-                );
-              },
-              child: const Text('Don\'t have an account? Sign Up'),
-            ),
+            // ถ้ากำลังโหลดอยู่ ให้ซ่อนปุ่ม Sign Up ไปก่อน
+            if (!_isLoading)
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const SignUpScreen(),
+                    ),
+                  );
+                },
+                child: const Text('Don\'t have an account? Sign Up'),
+              ),
           ],
         ),
       ),

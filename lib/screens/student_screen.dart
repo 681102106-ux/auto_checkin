@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:auto_checkin/screens/login_screen.dart'; // <<<--- 1. Import หน้า Login เข้ามา
+import 'package:auto_checkin/screens/login_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // <<<--- Import เพิ่ม
 import 'qr_scanner_screen.dart';
 
 class StudentScreen extends StatefulWidget {
@@ -13,7 +14,12 @@ class StudentScreen extends StatefulWidget {
 class _StudentScreenState extends State<StudentScreen> {
   final _debugQrController = TextEditingController();
 
-  // --- [โค้ดใหม่] ฟังก์ชันสำหรับแสดง Pop-up ยืนยันการ Logout ---
+  @override
+  void dispose() {
+    _debugQrController.dispose();
+    super.dispose();
+  }
+
   Future<void> _showLogoutConfirmationDialog() async {
     return showDialog<void>(
       context: context,
@@ -35,10 +41,10 @@ class _StudentScreenState extends State<StudentScreen> {
             TextButton(
               child: const Text('Logout'),
               onPressed: () {
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (context) => const LoginScreen()),
-                  (route) => false,
-                );
+                // --- [จุดแก้ไขที่สำคัญที่สุด!] ---
+                Navigator.of(context).pop();
+                FirebaseAuth.instance.signOut();
+                // --- [จบการแก้ไข] ---
               },
             ),
           ],
@@ -46,7 +52,6 @@ class _StudentScreenState extends State<StudentScreen> {
       },
     );
   }
-  // --- [จบโค้ดใหม่] ---
 
   void _showCheckInDialog(String classCode) {
     final studentIdController = TextEditingController();
@@ -108,7 +113,6 @@ class _StudentScreenState extends State<StudentScreen> {
         title: const Text('Student Dashboard'),
         backgroundColor: Colors.teal,
         foregroundColor: Colors.white,
-        // --- [โค้ดใหม่] เพิ่มปุ่ม Action สำหรับ Logout ---
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
@@ -116,7 +120,6 @@ class _StudentScreenState extends State<StudentScreen> {
             tooltip: 'Logout',
           ),
         ],
-        // --- [จบโค้ดใหม่] ---
       ),
       body: Center(
         child: Padding(

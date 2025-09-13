@@ -1,5 +1,6 @@
+import 'package:auto_checkin/screens/login_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // <<<--- Import เพิ่ม
 import 'package:flutter/material.dart';
-import 'package:auto_checkin/screens/login_screen.dart'; // <<<--- 1. Import หน้า Login เข้ามา
 import '../models/course.dart';
 import 'check_in_screen.dart';
 import 'create_course_screen.dart';
@@ -23,7 +24,6 @@ class _HomeScreenState extends State<HomeScreen> {
     _courses = _courseService.getCourses();
   }
 
-  // --- [โค้ดใหม่] ฟังก์ชันสำหรับแสดง Pop-up ยืนยันการ Logout ---
   Future<void> _showLogoutConfirmationDialog() async {
     return showDialog<void>(
       context: context,
@@ -45,11 +45,13 @@ class _HomeScreenState extends State<HomeScreen> {
             TextButton(
               child: const Text('Logout'),
               onPressed: () {
-                // แทนที่หน้าปัจจุบันทั้งหมดด้วยหน้า Login
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (context) => const LoginScreen()),
-                  (route) => false,
-                );
+                // --- [จุดแก้ไขที่สำคัญที่สุด!] ---
+                // 1. ปิด Pop-up ก่อน
+                Navigator.of(context).pop();
+                // 2. แจ้งให้ Firebase ทราบว่าเรา Logout แล้ว
+                FirebaseAuth.instance.signOut();
+                // 3. ไม่ต้องสั่งเปลี่ยนหน้าเอง! ปล่อยให้ AuthGate จัดการ
+                // --- [จบการแก้ไข] ---
               },
             ),
           ],
@@ -57,7 +59,6 @@ class _HomeScreenState extends State<HomeScreen> {
       },
     );
   }
-  // --- [จบโค้ดใหม่] ---
 
   void _editCourse(Course courseToEdit) async {
     final updatedCourse = await Navigator.of(context).push<Course>(
@@ -92,7 +93,6 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Courses'),
-        // --- [โค้ดใหม่] เพิ่มปุ่ม Action สำหรับ Logout ---
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
@@ -100,7 +100,6 @@ class _HomeScreenState extends State<HomeScreen> {
             tooltip: 'Logout',
           ),
         ],
-        // --- [จบโค้ดใหม่] ---
       ),
       body: ListView.builder(
         itemCount: _courses.length,

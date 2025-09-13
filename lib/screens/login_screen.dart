@@ -1,8 +1,6 @@
 import 'package:auto_checkin/screens/signup_screen.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // <<<--- แก้ไขที่อยู่ตรงนี้ให้ถูกต้อง
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'home_screen.dart';
-import 'student_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -14,19 +12,30 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  bool _isLoading = false; // <<<--- 1. เพิ่ม State สำหรับสถานะโหลด
 
   Future<void> _signIn() async {
+    setState(() {
+      _isLoading = true; // <<<--- 2. เริ่มโหลด: แสดงวงกลมหมุน
+    });
+
     try {
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
-      // AuthGate จะจัดการเรื่องการเปลี่ยนหน้าให้เอง
     } on FirebaseAuthException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(e.message ?? "Login failed")));
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading =
+              false; // <<<--- 3. โหลดเสร็จ: ซ่อนวงกลมหมุน (ไม่ว่าจะสำเร็จหรือล้มเหลว)
+        });
       }
     }
   }
@@ -62,7 +71,15 @@ class _LoginScreenState extends State<LoginScreen> {
               decoration: const InputDecoration(labelText: 'Password'),
             ),
             const SizedBox(height: 40),
-            ElevatedButton(onPressed: _signIn, child: const Text('Login')),
+
+            // <<<--- 4. ถ้ากำลังโหลด ให้แสดงวงกลมหมุน ถ้าไม่ ก็แสดงปุ่มเหมือนเดิม
+            _isLoading
+                ? const CircularProgressIndicator()
+                : ElevatedButton(
+                    onPressed: _signIn,
+                    child: const Text('Login'),
+                  ),
+
             TextButton(
               onPressed: () {
                 Navigator.of(context).push(

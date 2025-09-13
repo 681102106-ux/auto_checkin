@@ -56,27 +56,22 @@ class _EditCourseScreenState extends State<EditCourseScreen> {
     super.dispose();
   }
 
-  void _saveChanges() {
+  void _saveForm() {
     if (_formKey.currentState!.validate()) {
-      // สร้าง Object ของ Course ที่อัปเดตแล้วขึ้นมาใหม่
+      _formKey.currentState!.save();
+
       final updatedCourse = Course(
         id: widget.course.id, // ใช้ ID เดิม
-        name: _courseNameController.text,
-        professorName: _profNameController.text,
-        scoringRules:
-            widget
-                .course
-                .scoringRules // สร้าง object ใหม่สำหรับ scoringRules
-              ..presentScore =
-                  double.tryParse(_presentScoreController.text) ?? 0
-              ..absentScore = double.tryParse(_absentScoreController.text) ?? 0
-              ..onLeaveScore =
-                  double.tryParse(_onLeaveScoreController.text) ?? 0
-              ..lateScore = double.tryParse(_lateScoreController.text) ?? 0,
+        name: _courseName,
+        professorName: _professorName,
+        professorId: widget.course.professorId, // ใช้ professorId เดิม
+        scoringRules: _scoringRules,
       );
 
-      // ส่ง Course ที่อัปเดตแล้วกลับไปที่ HomeScreen
-      Navigator.of(context).pop(updatedCourse);
+      // เรียกใช้ Service ตัวใหม่
+      CourseService().updateCourse(updatedCourse).then((_) {
+        Navigator.of(context).pop();
+      });
     }
   }
 

@@ -1,7 +1,9 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart'; // <<<--- เราจะใช้ package ช่วยสร้าง ID ที่ไม่ซ้ำกัน
 import '../models/course.dart';
 import '../models/scoring_rules.dart';
+import '../services/course_service.dart';
 
 class CreateCourseScreen extends StatefulWidget {
   const CreateCourseScreen({super.key});
@@ -25,21 +27,29 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
     super.dispose();
   }
 
-  void _saveCourse() {
-    if (_formKey.currentState!.validate()) {
-      // สร้าง Object ของ Course ใหม่
+  void _saveForm() {
+     if (_formKey.currentState!.validate()) {
+      _formKey.currentState!.save();
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        // Handle error: user not logged in
+      }
+
       final newCourse = Course(
-        id: const Uuid().v4(), // สร้าง ID ที่ไม่ซ้ำกัน
+        id: const Uuid().v4(), // Firestore จะสร้าง ID ให้เอง
         name: _courseNameController.text,
         professorName: _profNameController.text,
-        scoringRules: _scoringRules, // ใช้กฎกติกาที่ตั้งค่าไว้
+        professorId: currentUser.uid, // <<<--- เพิ่ม ID ของอาจารย์
+        scoringRules: _scoringRules,
       );
 
-      // ส่ง Course ที่สร้างใหม่กลับไปที่ HomeScreen
-      Navigator.of(context).pop(newCourse);
+      // เรียกใช้ Service ตัวใหม่
+      CourseService().addCourse(newCourse).then((_) {
+        Navigator.of(context).pop();
+      });
+    }
     }
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -98,13 +108,13 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
             _buildScoreEditor(
               'Late',
               _scoringRules.lateScore,
-              (val) => _scoringRules.lateScore = val,
             ),
             const SizedBox(height: 32),
             ElevatedButton(
-              onPressed: _saveCourse,
+              onPressed: _saveForm,
               child: const Text('Save Course'),
             ),
+          ],
           ],
         ),
       ),

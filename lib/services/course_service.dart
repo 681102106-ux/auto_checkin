@@ -1,41 +1,38 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/course.dart';
-import '../models/scoring_rules.dart';
 
 class CourseService {
-  // นี่คือ "คลังวัตถุดิบ" ของเรา (ข้อมูลจำลอง)
-  // ตอนนี้มันถูกย้ายมาอยู่ในครัวเรียบร้อยแล้ว
-  final List<Course> _courses = [
-    Course(
-      id: 'CS101',
-      name: 'Introduction to Computer Science',
-      professorName: 'อ.นราศักดิ์',
-      scoringRules: ScoringRules(),
-    ),
-    Course(
-      id: 'MA101',
-      name: 'Calculus I',
-      professorName: 'อ.สมศรี',
-      scoringRules: ScoringRules(presentScore: 2.0, lateScore: 1.0),
-    ),
-  ];
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final String _collectionName = 'courses';
 
-  // นี่คือเมนูที่ "พ่อครัว" เตรียมไว้ให้ "พนักงานเสิร์ฟ" เรียกใช้
-  // ฟังก์ชันสำหรับดึงรายวิชาทั้งหมด
-  List<Course> getCourses() {
-    // ในอนาคต โค้ดส่วนนี้จะเปลี่ยนไปเป็นการดึงข้อมูลจาก Database จริงๆ
-    return _courses;
+  // --- [เปลี่ยน] จาก getCourses() ธรรมดา เป็น Stream ที่คอย "ฟัง" การเปลี่ยนแปลง ---
+  Stream<List<Course>> getCoursesStream(String professorId) {
+    // ไปที่ collection 'courses' และกรองเอาเฉพาะคลาสที่ professorId ตรงกัน
+    return _db
+        .collection(_collectionName)
+        .where('professorId', isEqualTo: professorId)
+        .snapshots()
+        .map(
+          (snapshot) =>
+              snapshot.docs.map((doc) => Course.fromFirestore(doc)).toList(),
+        );
   }
 
-  // ฟังก์ชันสำหรับเพิ่มรายวิชาใหม่
-  void addCourse(Course course) {
-    _courses.add(course);
+  // --- [เปลี่ยน] ฟังก์ชันเพิ่มคลาส ให้ทำงานกับ Firestore ---
+  Future<void> addCourse(Course course) {
+    return _db.collection(_collectionName).add(course.toJson());
   }
 
-  // ฟังก์ชันสำหรับแก้ไขรายวิชา
-  void updateCourse(Course updatedCourse) {
-    final index = _courses.indexWhere((c) => c.id == updatedCourse.id);
-    if (index != -1) {
-      _courses[index] = updatedCourse;
-    }
+  // --- [เปลี่ยน] ฟังก์ชันอัปเดตคลาส ให้ทำงานกับ Firestore ---
+  Future<void> updateCourse(Course course) {
+    return _db
+        .collection(_collectionName)
+        .doc(course.id)
+        .update(course.toJson());
+  }
+
+  // --- [ใหม่] ฟังก์ชันลบคลาส ---
+  Future<void> deleteCourse(String courseId) {
+    return _db.collection(_collectionName).doc(courseId).delete();
   }
 }

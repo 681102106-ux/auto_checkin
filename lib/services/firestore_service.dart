@@ -1,4 +1,4 @@
-import 'package.cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // <<<--- แก้ไขที่อยู่ตรงนี้ให้ถูกต้อง
 import '../models/user_role.dart';
 
 class FirestoreService {
@@ -7,12 +7,12 @@ class FirestoreService {
   Future<void> createUserRecord({
     required String uid,
     required String email,
-    UserRole role = UserRole.student, // <<<--- ค่าเริ่มต้นคือ student เสมอ
+    UserRole role = UserRole.student,
   }) async {
     await _db.collection('users').doc(uid).set({
       'email': email,
       'role': role.toString().split('.').last,
-      'profileComplete': false, // <<<--- เพิ่มสถานะว่ายังกรอกข้อมูลไม่เสร็จ
+      'profileComplete': false,
       'createdAt': FieldValue.serverTimestamp(),
     });
   }
@@ -33,22 +33,19 @@ class FirestoreService {
     }
   }
 
-  // --- [ฟังก์ชันใหม่] เช็กว่าโปรไฟล์สมบูรณ์หรือยัง ---
   Future<bool> isUserProfileComplete(String uid) async {
     try {
       final doc = await _db.collection('users').doc(uid).get();
-      // ถ้าไม่มีเอกสาร หรือ 'profileComplete' เป็น false หรือไม่มีอยู่ ให้ถือว่าไม่สมบูรณ์
       if (!doc.exists || (doc.data()?['profileComplete'] ?? false) == false) {
         return false;
       }
       return true;
     } catch (e) {
       print(e);
-      return false; // ถ้า Error ให้ถือว่าไม่สมบูรณ์
+      return false;
     }
   }
 
-  // --- [ฟังก์ชันใหม่] อัปเดตข้อมูลโปรไฟล์นักศึกษา ---
   Future<void> updateStudentProfile({
     required String uid,
     required String studentId,
@@ -58,7 +55,6 @@ class FirestoreService {
     required int year,
     required String phoneNumber,
   }) async {
-    // เราจะใช้ `update` เพื่อเพิ่มข้อมูลเข้าไปในเอกสารเดิม
     await _db.collection('users').doc(uid).update({
       'studentId': studentId,
       'fullName': fullName,
@@ -66,7 +62,7 @@ class FirestoreService {
       'major': major,
       'year': year,
       'phoneNumber': phoneNumber,
-      'profileComplete': true, // <<<--- อัปเดตสถานะว่ากรอกข้อมูลเสร็จแล้ว
+      'profileComplete': true,
     });
   }
 }

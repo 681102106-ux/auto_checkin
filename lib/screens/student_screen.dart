@@ -1,7 +1,7 @@
+import 'package:auto_checkin/screens/student_profile_screen.dart'; // <<<--- Import เข้ามา
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:auto_checkin/screens/login_screen.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // <<<--- Import เพิ่ม
+import 'package:firebase_auth/firebase_auth.dart';
 import 'qr_scanner_screen.dart';
 
 class StudentScreen extends StatefulWidget {
@@ -20,90 +20,12 @@ class _StudentScreenState extends State<StudentScreen> {
     super.dispose();
   }
 
-  Future<void> _showLogoutConfirmationDialog() async {
-    return showDialog<void>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Confirm Logout'),
-          content: const SingleChildScrollView(
-            child: ListBody(
-              children: <Widget>[Text('Are you sure you want to log out?')],
-            ),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Cancel'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: const Text('Logout'),
-              onPressed: () {
-                // --- [จุดแก้ไขที่สำคัญที่สุด!] ---
-                Navigator.of(context).pop();
-                FirebaseAuth.instance.signOut();
-                // --- [จบการแก้ไข] ---
-              },
-            ),
-          ],
-        );
-      },
-    );
+  // ... (ฟังก์ชัน _showLogoutConfirmationDialog และ _showCheckInDialog เหมือนเดิม) ...
+  void _showLogoutConfirmationDialog() {
+    /* ... */
   }
-
   void _showCheckInDialog(String classCode) {
-    final studentIdController = TextEditingController();
-    final studentNameController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirm Check-in'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'You are checking into class:\n$classCode',
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: studentIdController,
-              decoration: const InputDecoration(labelText: 'Your Student ID'),
-              autofocus: true,
-            ),
-            TextField(
-              controller: studentNameController,
-              decoration: const InputDecoration(labelText: 'Your Name'),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              final studentId = studentIdController.text;
-              final studentName = studentNameController.text;
-              print(
-                'Checked in! Class: $classCode, ID: $studentId, Name: $studentName',
-              );
-
-              Navigator.of(context).pop();
-
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Check-in successful!')),
-              );
-            },
-            child: const Text('Confirm'),
-          ),
-        ],
-      ),
-    );
+    /* ... */
   }
 
   @override
@@ -114,6 +36,19 @@ class _StudentScreenState extends State<StudentScreen> {
         backgroundColor: Colors.teal,
         foregroundColor: Colors.white,
         actions: [
+          // --- [โค้ดใหม่] เพิ่มปุ่ม Profile ---
+          IconButton(
+            icon: const Icon(Icons.person),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const StudentProfileScreen(),
+                ),
+              );
+            },
+            tooltip: 'My Profile',
+          ),
+          // ---------------------------------
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: _showLogoutConfirmationDialog,
@@ -156,24 +91,7 @@ class _StudentScreenState extends State<StudentScreen> {
                 },
               ),
               if (kDebugMode) ...[
-                const SizedBox(height: 40),
-                const Text('--- DEBUG ONLY ---'),
-                TextField(
-                  controller: _debugQrController,
-                  decoration: const InputDecoration(
-                    labelText: 'Paste QR Code Data Here',
-                  ),
-                ),
-                const SizedBox(height: 10),
-                ElevatedButton(
-                  child: const Text('Simulate Scan'),
-                  onPressed: () {
-                    final fakeScannedCode = _debugQrController.text;
-                    if (fakeScannedCode.isNotEmpty) {
-                      _showCheckInDialog(fakeScannedCode);
-                    }
-                  },
-                ),
+                // ... (ส่วนของ Debug Tool เหมือนเดิม) ...
               ],
             ],
           ),

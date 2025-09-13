@@ -1,11 +1,13 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class StudentProfile {
   final String uid;
   final String email;
   final String studentId;
   final String fullName;
-  final String faculty; // คณะ
-  final String major; // สาขา
-  final int year; // ชั้นปี
+  final String faculty;
+  final String major;
+  final int year;
   final String phoneNumber;
 
   StudentProfile({
@@ -18,4 +20,20 @@ class StudentProfile {
     required this.year,
     required this.phoneNumber,
   });
+
+  factory StudentProfile.fromFirestore(
+    DocumentSnapshot<Map<String, dynamic>> doc,
+  ) {
+    final data = doc.data()!;
+    return StudentProfile(
+      uid: doc.id,
+      email: data['email'] ?? '',
+      studentId: data['studentId'] ?? '',
+      fullName: data['fullName'] ?? '',
+      faculty: data['faculty'] ?? '',
+      major: data['major'] ?? '',
+      year: data['year'] ?? 0,
+      phoneNumber: data['phoneNumber'] ?? '',
+    );
+  }
 }

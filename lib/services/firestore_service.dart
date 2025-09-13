@@ -1,13 +1,27 @@
-import 'package:cloud_firestore/cloud_firestore.dart'; // <<<--- แก้ไขที่อยู่ตรงนี้ให้ถูกต้อง
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../models/student_profile.dart'; // <<<--- ตรวจสอบ import นี้ให้ถูกต้อง
 import '../models/user_role.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+
   Stream<DocumentSnapshot<Map<String, dynamic>>> userDocumentStream(
     String uid,
   ) {
     return _db.collection('users').doc(uid).snapshots();
   }
+
+  // --- [ฟังก์ชันใหม่] ดึงข้อมูลโปรไฟล์ของนักเรียน ---
+  Future<StudentProfile> getStudentProfile(String uid) async {
+    try {
+      final doc = await _db.collection('users').doc(uid).get();
+      return StudentProfile.fromFirestore(doc);
+    } catch (e) {
+      print("Error getting student profile: $e");
+      rethrow;
+    }
+  }
+  // --- [จบฟังก์ชันใหม่] ---
 
   Future<void> createUserRecord({
     required String uid,
@@ -35,19 +49,6 @@ class FirestoreService {
     } catch (e) {
       print(e);
       return UserRole.student;
-    }
-  }
-
-  Future<bool> isUserProfileComplete(String uid) async {
-    try {
-      final doc = await _db.collection('users').doc(uid).get();
-      if (!doc.exists || (doc.data()?['profileComplete'] ?? false) == false) {
-        return false;
-      }
-      return true;
-    } catch (e) {
-      print(e);
-      return false;
     }
   }
 

@@ -28,7 +28,7 @@ class AuthGate extends StatelessWidget {
           // เรียก "พ่อครัวใหญ่" ให้ไปเช็กว่าโปรไฟล์สมบูรณ์ไหม
           future: FirestoreService().isUserProfileComplete(user.uid),
           builder: (context, profileSnapshot) {
-            // ถ้ากำลังโหลดข้อมูลโปรไฟล์...
+            // ถ้ากำลังโหลดข้อมูลโปรไฟล์... ให้แสดงวงกลมหมุนๆ
             if (profileSnapshot.connectionState == ConnectionState.waiting) {
               return const Scaffold(
                 body: Center(child: CircularProgressIndicator()),

@@ -1,8 +1,12 @@
+import 'package:auto_checkin/screens/create_profile_screen.dart';
 import 'package:auto_checkin/screens/home_screen.dart';
 import 'package:auto_checkin/screens/login_screen.dart';
 import 'package:auto_checkin/screens/student_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+
+import 'models/user_role.dart';
+import 'services/firestore_service.dart';
 
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
@@ -12,39 +16,49 @@ class AuthGate extends StatelessWidget {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
-        // ถ้า User ยังไม่ได้ล็อกอิน หรือกำลังรอการยืนยัน
+        // --- ส่วนที่ 1: เช็กว่าล็อกอินหรือยัง ---
         if (!snapshot.hasData) {
+          // ยังไม่ได้ล็อกอิน -> ไปหน้า Login
           return const LoginScreen();
         }
 
-        // ถ้า User ล็อกอินแล้ว
-        // --- [ส่วนที่ปรับปรุง] ---
-        // เราจะสร้าง Widget ที่รอการตรวจสอบ Role ในอนาคต
-        // ตอนนี้เราจะยัง hardcode ให้ไปหน้า HomeScreen ก่อน
-        // แต่โครงสร้างนี้พร้อมสำหรับการใส่ Logic จริงในเฟส 13 แล้ว
-        return FutureBuilder(
-          // TODO: ในเฟส 13 เราจะสร้างฟังก์ชัน getUserRole(snapshot.data!.uid)
-          future: Future.value(
-            true,
-          ), // สมมติว่าตอนนี้ทุกคนเป็น Professor ไปก่อนเพื่อทดสอบ
-          builder: (context, roleSnapshot) {
-            if (roleSnapshot.connectionState == ConnectionState.waiting) {
+        // --- ส่วนที่ 2: ถ้าล็อกอินแล้ว มาเช็กโปรไฟล์กัน ---
+        final user = snapshot.data!;
+        return FutureBuilder<bool>(
+          // เรียก "พ่อครัวใหญ่" ให้ไปเช็กว่าโปรไฟล์สมบูรณ์ไหม
+          future: FirestoreService().isUserProfileComplete(user.uid),
+          builder: (context, profileSnapshot) {
+            // ถ้ากำลังโหลดข้อมูลโปรไฟล์...
+            if (profileSnapshot.connectionState == ConnectionState.waiting) {
               return const Scaffold(
                 body: Center(child: CircularProgressIndicator()),
               );
             }
 
-            // TODO: ในเฟส 13 เราจะเช็ก `roleSnapshot.data` เพื่อแยกว่าจะไป HomeScreen หรือ StudentScreen
-            // if (roleSnapshot.data == UserRole.professor) {
-            //   return const HomeScreen();
-            // } else {
-            //   return const StudentScreen();
-            // }
+            // ถ้าโปรไฟล์ "ยังไม่สมบูรณ์" -> บังคับไปหน้าสร้างโปรไฟล์
+            if (profileSnapshot.data == false) {
+              return const CreateProfileScreen();
+            }
 
-            return const HomeScreen(); // ตอนนี้ไปที่ HomeScreen ก่อน
+            // --- ส่วนที่ 3: ถ้าโปรไฟล์สมบูรณ์แล้ว ค่อยมาเช็ก Role ---
+            return FutureBuilder<UserRole>(
+              future: FirestoreService().getUserRole(user.uid),
+              builder: (context, roleSnapshot) {
+                if (roleSnapshot.connectionState == ConnectionState.waiting) {
+                  return const Scaffold(
+                    body: Center(child: CircularProgressIndicator()),
+                  );
+                }
+
+                if (roleSnapshot.data == UserRole.professor) {
+                  return const HomeScreen(); // ถ้าเป็นอาจารย์ -> ไปหน้า Home
+                } else {
+                  return const StudentScreen(); // ถ้าเป็นนักเรียน -> ไปหน้า Student
+                }
+              },
+            );
           },
         );
-        // --- [จบส่วนที่ปรับปรุง] ---
       },
     );
   }

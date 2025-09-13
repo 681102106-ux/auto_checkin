@@ -3,6 +3,11 @@ import '../models/user_role.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+  Stream<DocumentSnapshot<Map<String, dynamic>>> userDocumentStream(
+    String uid,
+  ) {
+    return _db.collection('users').doc(uid).snapshots();
+  }
 
   Future<void> createUserRecord({
     required String uid,

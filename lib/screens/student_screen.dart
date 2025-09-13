@@ -1,5 +1,6 @@
-import 'package:flutter/foundation.dart'; // <<<--- 1. Import เครื่องมือเช็ก Debug Mode
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:auto_checkin/screens/login_screen.dart'; // <<<--- 1. Import หน้า Login เข้ามา
 import 'qr_scanner_screen.dart';
 
 class StudentScreen extends StatefulWidget {
@@ -10,8 +11,41 @@ class StudentScreen extends StatefulWidget {
 }
 
 class _StudentScreenState extends State<StudentScreen> {
-  // --- [โค้ดใหม่] Controller สำหรับช่องกรอกทดสอบ ---
   final _debugQrController = TextEditingController();
+
+  // --- [โค้ดใหม่] ฟังก์ชันสำหรับแสดง Pop-up ยืนยันการ Logout ---
+  Future<void> _showLogoutConfirmationDialog() async {
+    return showDialog<void>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirm Logout'),
+          content: const SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[Text('Are you sure you want to log out?')],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: const Text('Logout'),
+              onPressed: () {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (context) => const LoginScreen()),
+                );
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+  // --- [จบโค้ดใหม่] ---
 
   void _showCheckInDialog(String classCode) {
     final studentIdController = TextEditingController();
@@ -47,14 +81,13 @@ class _StudentScreenState extends State<StudentScreen> {
           ),
           TextButton(
             onPressed: () {
-              // TODO: Implement actual check-in logic in the future
               final studentId = studentIdController.text;
               final studentName = studentNameController.text;
               print(
                 'Checked in! Class: $classCode, ID: $studentId, Name: $studentName',
               );
 
-              Navigator.of(context).pop(); // ปิด Pop-up
+              Navigator.of(context).pop();
 
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Check-in successful!')),
@@ -74,6 +107,15 @@ class _StudentScreenState extends State<StudentScreen> {
         title: const Text('Student Dashboard'),
         backgroundColor: Colors.teal,
         foregroundColor: Colors.white,
+        // --- [โค้ดใหม่] เพิ่มปุ่ม Action สำหรับ Logout ---
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: _showLogoutConfirmationDialog,
+            tooltip: 'Logout',
+          ),
+        ],
+        // --- [จบโค้ดใหม่] ---
       ),
       body: Center(
         child: Padding(
@@ -109,10 +151,6 @@ class _StudentScreenState extends State<StudentScreen> {
                   }
                 },
               ),
-
-              // --- [โค้ดใหม่] สร้าง "ประตูหลัง" สำหรับทดสอบ! ---
-              // kDebugMode จะเป็น 'true' เฉพาะตอนที่เรากำลังพัฒนาแอป
-              // เมื่อเรา Build แอปเป็นเวอร์ชันจริง ส่วนนี้จะหายไปเองอัตโนมัติ!
               if (kDebugMode) ...[
                 const SizedBox(height: 40),
                 const Text('--- DEBUG ONLY ---'),
@@ -133,8 +171,6 @@ class _StudentScreenState extends State<StudentScreen> {
                   },
                 ),
               ],
-
-              // --- [จบส่วนประตูหลัง] ---
             ],
           ),
         ),

@@ -1,5 +1,5 @@
-import 'package.auto_checkin/services/firestore_service.dart';
-import 'package.firebase_auth/firebase_auth.dart';
+import 'package:auto_checkin/services/firestore_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class SignUpScreen extends StatefulWidget {
@@ -13,6 +13,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   Future<void> _signUp() async {
     final email = _emailController.text.trim();
@@ -42,14 +49,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
           .createUserWithEmailAndPassword(email: email, password: password);
 
       if (userCredential.user != null) {
-        // เรียกใช้ฟังก์ชันใหม่ และไม่ต้องส่ง Role (เพราะค่าเริ่มต้นคือ student)
         await FirestoreService().createUserRecord(
           uid: userCredential.user!.uid,
           email: email,
         );
       }
 
-      // AuthGate จะจัดการเรื่องการเปลี่ยนหน้าให้เอง
       if (mounted) Navigator.of(context).pop();
     } on FirebaseAuthException catch (e) {
       if (mounted) {
@@ -64,13 +69,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
         });
       }
     }
-  }
-
-  @override
-  void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    super.dispose();
   }
 
   @override

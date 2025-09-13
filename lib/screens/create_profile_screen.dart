@@ -1,4 +1,4 @@
-import 'package.auto_checkin/services/firestore_service.dart';
+import 'package:auto_checkin/services/firestore_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -20,7 +20,18 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
 
   bool _isLoading = false;
 
+  @override
+  void dispose() {
+    _studentIdController.dispose();
+    _fullNameController.dispose();
+    _facultyController.dispose();
+    _majorController.dispose();
+    _phoneController.dispose();
+    super.dispose();
+  }
+
   Future<void> _saveProfile() async {
+    // ตรวจสอบว่าข้อมูลในฟอร์มถูกต้องทั้งหมดหรือไม่
     if (_formKey.currentState!.validate()) {
       setState(() {
         _isLoading = true;
@@ -29,6 +40,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
       try {
         final user = FirebaseAuth.instance.currentUser;
         if (user != null) {
+          // เรียก "พ่อครัวใหญ่" มาอัปเดตข้อมูล
           await FirestoreService().updateStudentProfile(
             uid: user.uid,
             studentId: _studentIdController.text.trim(),
@@ -38,7 +50,7 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
             year: _selectedYear!,
             phoneNumber: _phoneController.text.trim(),
           );
-          // AuthGate จะจัดการเรื่องการเปลี่ยนหน้าให้เองเมื่อ State เปลี่ยน
+          // ไม่ต้องสั่ง Navigator.pop() ที่นี่แล้ว เพราะ AuthGate จะตรวจจับการเปลี่ยนแปลงและพาไปหน้าถัดไปเอง
         }
       } catch (e) {
         if (mounted) {
@@ -59,7 +71,10 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Create Your Profile')),
+      appBar: AppBar(
+        title: const Text('Create Your Profile'),
+        automaticallyImplyLeading: false, // ป้องกันการกดย้อนกลับ
+      ),
       body: Form(
         key: _formKey,
         child: ListView(
@@ -68,18 +83,24 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
             TextFormField(
               controller: _fullNameController,
               decoration: const InputDecoration(labelText: 'ชื่อ-นามสกุล'),
+              validator: (value) =>
+                  value!.isEmpty ? 'กรุณากรอกชื่อ-นามสกุล' : null,
             ),
             TextFormField(
               controller: _studentIdController,
               decoration: const InputDecoration(labelText: 'รหัสนักศึกษา'),
+              validator: (value) =>
+                  value!.isEmpty ? 'กรุณากรอกรหัสนักศึกษา' : null,
             ),
             TextFormField(
               controller: _facultyController,
               decoration: const InputDecoration(labelText: 'คณะ'),
+              validator: (value) => value!.isEmpty ? 'กรุณากรอกคณะ' : null,
             ),
             TextFormField(
               controller: _majorController,
               decoration: const InputDecoration(labelText: 'สาขา'),
+              validator: (value) => value!.isEmpty ? 'กรุณากรอกสาขา' : null,
             ),
             DropdownButtonFormField<int>(
               value: _selectedYear,
@@ -95,11 +116,13 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
                   _selectedYear = newValue;
                 });
               },
+              validator: (value) => value == null ? 'กรุณาเลือกชั้นปี' : null,
             ),
             TextFormField(
               controller: _phoneController,
               decoration: const InputDecoration(labelText: 'เบอร์โทรติดต่อ'),
               keyboardType: TextInputType.phone,
+              validator: (value) => value!.isEmpty ? 'กรุณากรอกเบอร์โทร' : null,
             ),
             const SizedBox(height: 32),
             _isLoading

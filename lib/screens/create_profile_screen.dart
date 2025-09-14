@@ -31,7 +31,9 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
   }
 
   Future<void> _saveProfile() async {
-    // ตรวจสอบว่าข้อมูลในฟอร์มถูกต้องทั้งหมดหรือไม่
+    // ป้องกันการกดปุ่มซ้ำ
+    if (_isLoading) return;
+
     if (_formKey.currentState!.validate()) {
       setState(() {
         _isLoading = true;
@@ -40,7 +42,6 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
       try {
         final user = FirebaseAuth.instance.currentUser;
         if (user != null) {
-          // เรียก "พ่อครัวใหญ่" มาอัปเดตข้อมูล
           await FirestoreService().updateStudentProfile(
             uid: user.uid,
             studentId: _studentIdController.text.trim(),
@@ -50,31 +51,30 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
             year: _selectedYear!,
             phoneNumber: _phoneController.text.trim(),
           );
-          // ไม่ต้องสั่ง Navigator.pop() ที่นี่แล้ว เพราะ AuthGate จะตรวจจับการเปลี่ยนแปลงและพาไปหน้าถัดไปเอง
+          // --- [จุดแก้ไขที่สำคัญที่สุด!] ---
+          // เมื่อสำเร็จแล้ว เราไม่ต้องทำอะไรต่อเลย!
+          // เพราะ AuthGate จะจัดการเปลี่ยนหน้าให้เราเอง
+          // ไม่ต้องมี setState((){ _isLoading = false; }) ตรงนี้แล้ว
         }
       } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Error saving profile: $e')));
-        }
-      } finally {
+        // เราจะหยุดโหลดก็ต่อเมื่อเกิด Error เท่านั้น
         if (mounted) {
           setState(() {
             _isLoading = false;
           });
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Error saving profile: $e')));
         }
       }
+      // เอา finally ออกไป เพราะเราจะจัดการ State ใน try/catch แทน
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Create Your Profile'),
-        automaticallyImplyLeading: false, // ป้องกันการกดย้อนกลับ
-      ),
+      appBar: AppBar(title: const Text('Create Your Profile')),
       body: Form(
         key: _formKey,
         child: ListView(

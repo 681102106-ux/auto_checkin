@@ -88,8 +88,26 @@ class FirestoreService {
     required String email,
     UserRole role = UserRole.student,
   }) async {
-    /* ... */
+    try {
+      // <<<--- เพิ่ม try
+      await _db.collection('users').doc(uid).set({
+        'email': email,
+        'role': role.toString().split('.').last,
+        'profileComplete': false,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+      print(
+        'SUCCESS: User record created in Firestore for $uid',
+      ); // <<<--- เพิ่ม print ยืนยัน
+    } catch (e) {
+      // <<<--- เพิ่ม catch
+      // นี่คือเครื่องดักฟังของเรา!
+      print('!!!!!!!!!! FIRESTORE ERROR in createUserRecord !!!!!!!!!');
+      print(e);
+      print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!');
+    }
   }
+
   Future<UserRole> getUserRole(String uid) async {
     try {
       final doc = await _db.collection('users').doc(uid).get();

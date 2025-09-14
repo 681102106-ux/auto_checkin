@@ -83,5 +83,4 @@ class DefaultFirebaseOptions {
     authDomain: 'auto-checkin-v2.firebaseapp.com',
     storageBucket: 'auto-checkin-v2.firebasestorage.app',
   );
-
 }

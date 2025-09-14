@@ -111,6 +111,18 @@ class _HomeScreenState extends State<HomeScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
+                      icon: const Icon(Icons.people, color: Colors.blueAccent),
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                ManageRosterScreen(course: course),
+                          ),
+                        );
+                      },
+                      tooltip: 'Manage Roster',
+                    ),
+                    IconButton(
                       icon: const Icon(Icons.edit, color: Colors.grey),
                       onPressed: () => _editCourse(course),
                     ),

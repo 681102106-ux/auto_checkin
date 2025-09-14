@@ -2,7 +2,7 @@ import 'package:auto_checkin/screens/create_profile_screen.dart';
 import 'package:auto_checkin/screens/home_screen.dart';
 import 'package:auto_checkin/screens/login_screen.dart';
 import 'package:auto_checkin/screens/student_screen.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // <<<--- Import เพิ่ม
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -17,14 +17,16 @@ class AuthGate extends StatelessWidget {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, authSnapshot) {
+        // --- ส่วนที่ 1: เช็กว่าล็อกอินหรือยัง ---
         if (!authSnapshot.hasData) {
+          // ยังไม่ได้ล็อกอิน -> ไปหน้า Login
           return const LoginScreen();
         }
 
+        // --- ส่วนที่ 2: ถ้าล็อกอินแล้ว มาเช็กโปรไฟล์กัน ---
         final user = authSnapshot.data!;
-        // --- [แก้ไข] เปลี่ยนจาก FutureBuilder เป็น StreamBuilder ---
         return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-          // "เงี่ยหูฟัง" การเปลี่ยนแปลงของข้อมูล User คนนี้
+          // เรียก "พ่อครัวใหญ่" ให้ "เงี่ยหูฟัง" การเปลี่ยนแปลงของข้อมูล User
           stream: FirestoreService().userDocumentStream(user.uid),
           builder: (context, userDocSnapshot) {
             // ถ้ากำลังโหลดข้อมูล...
@@ -36,11 +38,9 @@ class AuthGate extends StatelessWidget {
 
             // ถ้าไม่มีข้อมูล User ใน Firestore เลย (อาจจะเพิ่งสมัคร)
             if (!userDocSnapshot.hasData || !userDocSnapshot.data!.exists) {
-              // ให้ไปหน้าสร้างโปรไฟล์ (ซึ่งเป็นกรณีที่ไม่น่าจะเกิด แต่ป้องกันไว้ก่อน)
               return const CreateProfileScreen();
             }
 
-            // ดึงข้อมูลจาก Snapshot
             final userData = userDocSnapshot.data!.data();
             final isProfileComplete = userData?['profileComplete'] ?? false;
             final roleString = userData?['role'] ?? 'student';
@@ -53,15 +53,14 @@ class AuthGate extends StatelessWidget {
               return const CreateProfileScreen();
             }
 
-            // ถ้าโปรไฟล์สมบูรณ์แล้ว -> แยก Role
+            // --- ส่วนที่ 3: ถ้าโปรไฟล์สมบูรณ์แล้ว ค่อยมาเช็ก Role ---
             if (role == UserRole.professor) {
-              return const HomeScreen();
+              return const HomeScreen(); // ถ้าเป็นอาจารย์ -> ไปหน้า Home
             } else {
-              return const StudentScreen();
+              return const StudentScreen(); // ถ้าเป็นนักเรียน -> ไปหน้า Student
             }
           },
         );
-        // --- [จบการแก้ไข] ---
       },
     );
   }

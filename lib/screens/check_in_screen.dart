@@ -7,7 +7,6 @@ import '../models/course.dart';
 
 class CheckInScreen extends StatefulWidget {
   final Course course;
-
   const CheckInScreen({super.key, required this.course});
 
   @override
@@ -15,37 +14,8 @@ class CheckInScreen extends StatefulWidget {
 }
 
 class _CheckInScreenState extends State<CheckInScreen> {
-  // ... (โค้ดส่วน State อื่นๆ เหมือนเดิมเป๊ะ) ...
-  final List<Student> _students = [
-    Student(id: '68001', name: 'นายสมชาย ใจดี'),
-    Student(id: '68002', name: 'นางสาวสมศรี มีสุข'),
-  ];
-  final Map<String, AttendanceStatus> _attendanceData = {};
+  final FirestoreService _firestoreService = FirestoreService();
 
-  @override
-  void initState() {
-    super.initState();
-    for (var student in _students) {
-      _attendanceData[student.id] = AttendanceStatus.unknown;
-    }
-  }
-
-  double _getScoreForStatus(AttendanceStatus? status) {
-    switch (status) {
-      case AttendanceStatus.present:
-        return widget.course.scoringRules.presentScore;
-      case AttendanceStatus.absent:
-        return widget.course.scoringRules.absentScore;
-      case AttendanceStatus.onLeave:
-        return widget.course.scoringRules.onLeaveScore;
-      case AttendanceStatus.late:
-        return widget.course.scoringRules.lateScore;
-      default:
-        return 0;
-    }
-  }
-
-  // --- [โค้ดใหม่] ฟังก์ชันสำหรับแสดง Pop-up QR Code ---
   void _showQrCodeDialog() {
     showDialog(
       context: context,
@@ -53,11 +23,10 @@ class _CheckInScreenState extends State<CheckInScreen> {
         content: SizedBox(
           width: 300,
           child: Column(
-            mainAxisSize: MainAxisSize.min, // ทำให้ Column สูงเท่าที่จำเป็น
+            mainAxisSize: MainAxisSize.min,
             children: [
-              // 2. ใช้ QrImageView เพื่อสร้าง QR Code จาก ID ของคลาส
               QrImageView(
-                data: widget.course.id, // ID ของคลาสคือข้อมูลที่เราจะเข้ารหัส
+                data: widget.course.id,
                 version: QrVersions.auto,
                 size: 200.0,
               ),
@@ -66,7 +35,6 @@ class _CheckInScreenState extends State<CheckInScreen> {
                 'Class Code',
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
-              // 3. แสดง Class ID เป็น Text ให้นักเรียนกรอกได้ด้วย
               SelectableText(widget.course.id),
             ],
           ),
@@ -96,21 +64,15 @@ class _CheckInScreenState extends State<CheckInScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.course.name),
-        backgroundColor: Colors.indigo,
-        foregroundColor: Colors.white,
-        // --- [โค้ดใหม่] เพิ่มปุ่ม Action ที่มุมขวาบน ---
+        title: Text('Check-in: ${widget.course.name}'),
         actions: [
           IconButton(
             icon: const Icon(Icons.qr_code_2),
-            onPressed: _showQrCodeDialog, // 4. กดแล้วให้เรียกฟังก์ชันของเรา
-            tooltip: 'Show Class QR Code',
+            onPressed: _showQrCodeDialog,
           ),
         ],
-        // --- [จบโค้ดใหม่] ---
       ),
       body: StreamBuilder<List<AttendanceRecord>>(
-        // "เงี่ยหูฟัง" รายชื่อผู้เข้าเรียนของคลาสนี้
         stream: _firestoreService.getAttendanceStream(widget.course.id),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -152,7 +114,6 @@ class _CheckInScreenState extends State<CheckInScreen> {
                         'Checked-in at: ${record.checkInTime.toDate().toLocal()}',
                       ),
                       const Divider(),
-                      // ส่วนของ Radio Button สำหรับอาจารย์แก้ไข
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: AttendanceStatus.values

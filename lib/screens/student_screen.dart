@@ -1,3 +1,4 @@
+import 'package:auto_checkin/models/attendance.dart';
 import 'package:auto_checkin/models/attendance_record.dart'; // <<<--- 1. หยิบแบบฟอร์มเข้ามา
 import 'package:auto_checkin/models/student_profile.dart';
 import 'package:auto_checkin/services/firestore_service.dart';

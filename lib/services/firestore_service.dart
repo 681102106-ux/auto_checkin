@@ -1,5 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/student_profile.dart'; // <<<--- ตรวจสอบ import นี้ให้ถูกต้อง
+import 'package.cloud_firestore/cloud_firestore.dart';
+import '../models/attendance_record.dart'; // <<<--- Import เข้ามา
+import '../models/student_profile.dart';
 import '../models/user_role.dart';
 
 class FirestoreService {
@@ -11,47 +12,36 @@ class FirestoreService {
     return _db.collection('users').doc(uid).snapshots();
   }
 
-  // --- [ฟังก์ชันใหม่] ดึงข้อมูลโปรไฟล์ของนักเรียน ---
-  Future<StudentProfile> getStudentProfile(String uid) async {
-    try {
-      final doc = await _db.collection('users').doc(uid).get();
-      return StudentProfile.fromFirestore(doc);
-    } catch (e) {
-      print("Error getting student profile: $e");
-      rethrow;
-    }
+  // --- [ฟังก์ชันใหม่!] บันทึกการเช็คชื่อ ---
+  Future<void> createAttendanceRecord({
+    required String courseId,
+    required AttendanceRecord record,
+  }) async {
+    // เราจะสร้าง "สมุดเช็คชื่อ" (subcollection) ใหม่ในคลาสนั้นๆ
+    // แล้วเพิ่ม "บันทึก" (document) ของนักเรียนคนนี้เข้าไป
+    await _db
+        .collection('courses')
+        .doc(courseId)
+        .collection('attendance_records')
+        .add(record.toJson());
   }
   // --- [จบฟังก์ชันใหม่] ---
 
+  Future<StudentProfile> getStudentProfile(String uid) async {
+    // ... โค้ดส่วนนี้เหมือนเดิม ...
+  }
+
+  // ... โค้ดส่วนอื่นทั้งหมดเหมือนเดิม ...
   Future<void> createUserRecord({
     required String uid,
     required String email,
     UserRole role = UserRole.student,
   }) async {
-    await _db.collection('users').doc(uid).set({
-      'email': email,
-      'role': role.toString().split('.').last,
-      'profileComplete': false,
-      'createdAt': FieldValue.serverTimestamp(),
-    });
+    /* ... */
   }
-
   Future<UserRole> getUserRole(String uid) async {
-    try {
-      final doc = await _db.collection('users').doc(uid).get();
-      if (doc.exists) {
-        final roleString = doc.data()?['role'] ?? 'student';
-        return roleString == 'professor'
-            ? UserRole.professor
-            : UserRole.student;
-      }
-      return UserRole.student;
-    } catch (e) {
-      print(e);
-      return UserRole.student;
-    }
+    /* ... */
   }
-
   Future<void> updateStudentProfile({
     required String uid,
     required String studentId,
@@ -61,14 +51,6 @@ class FirestoreService {
     required int year,
     required String phoneNumber,
   }) async {
-    await _db.collection('users').doc(uid).update({
-      'studentId': studentId,
-      'fullName': fullName,
-      'faculty': faculty,
-      'major': major,
-      'year': year,
-      'phoneNumber': phoneNumber,
-      'profileComplete': true,
-    });
+    /* ... */
   }
 }

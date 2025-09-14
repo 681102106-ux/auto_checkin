@@ -1,13 +1,14 @@
 import 'package:auto_checkin/models/attendance.dart';
-import 'package:auto_checkin/models/attendance_record.dart'; // <<<--- 1. หยิบแบบฟอร์มเข้ามา
+import 'package:auto_checkin/models/attendance_record.dart';
 import 'package:auto_checkin/models/student_profile.dart';
 import 'package:auto_checkin/services/firestore_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // <<<--- 2. หยิบนาฬิกาเข้ามา
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'qr_scanner_screen.dart';
 import 'student_profile_screen.dart';
+import 'student_history_screen.dart'; // <<<--- Import เข้ามา
 
 class StudentScreen extends StatefulWidget {
   const StudentScreen({super.key});
@@ -25,7 +26,6 @@ class _StudentScreenState extends State<StudentScreen> {
     super.dispose();
   }
 
-  // โค้ดส่วนนี้เหมือนเดิม
   Future<void> _showLogoutConfirmationDialog() async {
     return showDialog<void>(
       context: context,
@@ -95,19 +95,21 @@ class _StudentScreenState extends State<StudentScreen> {
             ),
             ElevatedButton(
               onPressed: () async {
-                // ตอนนี้โค้ดส่วนนี้จะทำงานได้สมบูรณ์แล้ว
+                // --- [จุดแก้ไขสำคัญ!] ---
                 final profile = await FirestoreService().getStudentProfile(
                   currentUser.uid,
                 );
 
                 final record = AttendanceRecord(
-                  id: '', // ไม่ต้องใช้ ID ตอนสร้าง
+                  id: '', // Firestore จะสร้าง ID ให้เอง
+                  courseId: classCode, // <<<--- เพิ่ม ID ของคลาสเข้าไปในบันทึก
                   studentUid: currentUser.uid,
                   studentId: profile.studentId,
                   studentName: profile.fullName,
                   checkInTime: Timestamp.now(),
-                  status: AttendanceStatus.present, // <<<--- เพิ่มสถานะเริ่มต้น
+                  status: AttendanceStatus.present,
                 );
+
                 await FirestoreService().createAttendanceRecord(
                   courseId: classCode,
                   record: record,
@@ -119,6 +121,7 @@ class _StudentScreenState extends State<StudentScreen> {
                     const SnackBar(content: Text('Check-in successful!')),
                   );
                 }
+                // --- [จบการแก้ไข] ---
               },
               child: const Text('Confirm'),
             ),
@@ -188,6 +191,22 @@ class _StudentScreenState extends State<StudentScreen> {
                   }
                 },
               ),
+
+              // --- [โค้ดใหม่!] ปุ่มสำหรับไปดูประวัติ ---
+              const SizedBox(height: 20),
+              TextButton.icon(
+                icon: const Icon(Icons.history),
+                label: const Text('View My Attendance History'),
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const StudentHistoryScreen(),
+                    ),
+                  );
+                },
+              ),
+
+              // --- [จบโค้ดใหม่] ---
               if (kDebugMode) ...[
                 const SizedBox(height: 40),
                 const Text('--- DEBUG ONLY ---'),

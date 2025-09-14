@@ -3,6 +3,7 @@ import 'package:auto_checkin/models/attendance.dart'; // <<<--- Import เข้
 
 class AttendanceRecord {
   final String id; // <<<--- เพิ่ม ID ของเอกสาร
+  final String courseId; // <<<--- เพิ่ม CourseId
   final String studentUid;
   final String studentId;
   final String studentName;
@@ -11,6 +12,7 @@ class AttendanceRecord {
 
   AttendanceRecord({
     required this.id,
+    required this.courseId,
     required this.studentUid,
     required this.studentId,
     required this.studentName,
@@ -21,6 +23,7 @@ class AttendanceRecord {
   // เครื่องมือแปลง Object เป็น Map เพื่อส่งให้ Firestore
   Map<String, dynamic> toJson() {
     return {
+      'courseId': courseId,
       'studentUid': studentUid,
       'studentId': studentId,
       'studentName': studentName,
@@ -33,8 +36,6 @@ class AttendanceRecord {
     DocumentSnapshot<Map<String, dynamic>> doc,
   ) {
     final data = doc.data()!;
-
-    // แปลง String กลับเป็น enum
     final statusString = data['status'] ?? 'unknown';
     final status = AttendanceStatus.values.firstWhere(
       (e) => e.toString().split('.').last == statusString,
@@ -43,6 +44,7 @@ class AttendanceRecord {
 
     return AttendanceRecord(
       id: doc.id,
+      courseId: data['courseId'] ?? 'N/A', // <<<--- เพิ่มเข้ามา
       studentUid: data['studentUid'] ?? '',
       studentId: data['studentId'] ?? '',
       studentName: data['studentName'] ?? '',

@@ -42,6 +42,22 @@ class FirestoreService {
     return _db.collection('users').doc(uid).snapshots();
   }
 
+  Stream<List<AttendanceRecord>> getStudentAttendanceHistory(
+    String studentUid,
+  ) {
+    // เราจะค้นหาใน "ทุก" collection ย่อยที่ชื่อ attendance_records
+    return _db
+        .collectionGroup('attendance_records')
+        .where('studentUid', isEqualTo: studentUid)
+        .orderBy('checkInTime', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => AttendanceRecord.fromFirestore(doc))
+              .toList(),
+        );
+  }
+
   // --- [ฟังก์ชันใหม่!] บันทึกการเช็คชื่อ ---
   Future<void> createAttendanceRecord({
     required String courseId,

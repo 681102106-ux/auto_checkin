@@ -1,4 +1,4 @@
-import 'package.cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/attendance_record.dart'; // <<<--- Import เข้ามา
 import '../models/student_profile.dart';
 import '../models/user_role.dart';
@@ -28,7 +28,12 @@ class FirestoreService {
   // --- [จบฟังก์ชันใหม่] ---
 
   Future<StudentProfile> getStudentProfile(String uid) async {
-    // ... โค้ดส่วนนี้เหมือนเดิม ...
+    final doc = await _db.collection('users').doc(uid).get();
+    if (doc.exists && doc.data() != null) {
+      return StudentProfile.fromFirestore(doc);
+    } else {
+      throw Exception('User profile not found');
+    }
   }
 
   // ... โค้ดส่วนอื่นทั้งหมดเหมือนเดิม ...
@@ -40,8 +45,22 @@ class FirestoreService {
     /* ... */
   }
   Future<UserRole> getUserRole(String uid) async {
-    /* ... */
+    try {
+      final doc = await _db.collection('users').doc(uid).get();
+      if (doc.exists && doc.data() != null) {
+        final roleString = doc.data()!['role'] as String?;
+        return UserRole.values.firstWhere(
+          (e) => e.toString() == 'UserRole.$roleString',
+          orElse: () =>
+              UserRole.student, // Default role if not found or invalid
+        );
+      }
+    } catch (e) {
+      // In case of error, default to student role
+    }
+    return UserRole.student;
   }
+
   Future<void> updateStudentProfile({
     required String uid,
     required String studentId,

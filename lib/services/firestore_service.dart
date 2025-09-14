@@ -57,6 +57,21 @@ class FirestoreService {
         .update({'status': newStatus});
   }
 
+  // --- [เพิ่มกลับเข้ามา!] ฟังก์ชันที่ create_profile_screen ต้องการใช้ ---
+  Future<bool> isUserProfileComplete(String uid) async {
+    try {
+      final doc = await _db.collection('users').doc(uid).get();
+      if (!doc.exists || (doc.data()?['profileComplete'] ?? false) == false) {
+        return false;
+      }
+      return true;
+    } catch (e) {
+      print(e);
+      return false;
+    }
+  }
+  // --- [จบส่วนที่เพิ่มกลับเข้ามา] ---
+
   // --- ฟังก์ชันที่เกี่ยวข้องกับการสร้าง/อัปเดตโปรไฟล์ ---
   Future<StudentProfile> getStudentProfile(String uid) async {
     try {

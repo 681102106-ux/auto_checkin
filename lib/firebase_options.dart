@@ -41,50 +41,47 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyAHzZYcB9wlGlQ1vW4AkrTnxygSJVY7IEk',
-    appId: '1:171634447388:web:91b2418a384b4e63befbd9',
-    messagingSenderId: '171634447388',
-    projectId: 'checkin-app-55083',
-    authDomain: 'checkin-app-55083.firebaseapp.com',
-    storageBucket: 'checkin-app-55083.firebasestorage.app',
-    measurementId: 'G-P6YRP6F431',
+    apiKey: 'AIzaSyBglyim-ZoRC4gF_F79PeM2x8lR3dxCFTM',
+    appId: '1:917936271250:web:c336601d169979798ddb4b',
+    messagingSenderId: '917936271250',
+    projectId: 'auto-checkin-v2',
+    authDomain: 'auto-checkin-v2.firebaseapp.com',
+    storageBucket: 'auto-checkin-v2.firebasestorage.app',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyCQ9Rh5p7of_OS3UUqx-b7U23WpiLaM7iQ',
-    appId: '1:171634447388:android:a5fcc18a67f6e3ebbefbd9',
-    messagingSenderId: '171634447388',
-    projectId: 'checkin-app-55083',
-    storageBucket: 'checkin-app-55083.firebasestorage.app',
+    apiKey: 'AIzaSyCKA1mms2cGPnc7xsmFanTt170BfU_UcuQ',
+    appId: '1:917936271250:android:4647542ae944708d8ddb4b',
+    messagingSenderId: '917936271250',
+    projectId: 'auto-checkin-v2',
+    storageBucket: 'auto-checkin-v2.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyDMwFeghccBLbsTdFJ-DqLsPDBPANLMP4I',
-    appId: '1:171634447388:ios:724c21384b650635befbd9',
-    messagingSenderId: '171634447388',
-    projectId: 'checkin-app-55083',
-    storageBucket: 'checkin-app-55083.firebasestorage.app',
-    iosClientId: '171634447388-kcpdcveiur5nji2rkr57h2a20ekurfo6.apps.googleusercontent.com',
+    apiKey: 'AIzaSyALPo0vYhgy6fuVzy7qYIqOZgsPwhhcKu0',
+    appId: '1:917936271250:ios:004db4e1edd915538ddb4b',
+    messagingSenderId: '917936271250',
+    projectId: 'auto-checkin-v2',
+    storageBucket: 'auto-checkin-v2.firebasestorage.app',
     iosBundleId: 'com.example.autoCheckin',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyDMwFeghccBLbsTdFJ-DqLsPDBPANLMP4I',
-    appId: '1:171634447388:ios:724c21384b650635befbd9',
-    messagingSenderId: '171634447388',
-    projectId: 'checkin-app-55083',
-    storageBucket: 'checkin-app-55083.firebasestorage.app',
-    iosClientId: '171634447388-kcpdcveiur5nji2rkr57h2a20ekurfo6.apps.googleusercontent.com',
+    apiKey: 'AIzaSyALPo0vYhgy6fuVzy7qYIqOZgsPwhhcKu0',
+    appId: '1:917936271250:ios:004db4e1edd915538ddb4b',
+    messagingSenderId: '917936271250',
+    projectId: 'auto-checkin-v2',
+    storageBucket: 'auto-checkin-v2.firebasestorage.app',
     iosBundleId: 'com.example.autoCheckin',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyAHzZYcB9wlGlQ1vW4AkrTnxygSJVY7IEk',
-    appId: '1:171634447388:web:4d42ba4a59a3513cbefbd9',
-    messagingSenderId: '171634447388',
-    projectId: 'checkin-app-55083',
-    authDomain: 'checkin-app-55083.firebaseapp.com',
-    storageBucket: 'checkin-app-55083.firebasestorage.app',
-    measurementId: 'G-01WZ66WC9B',
+    apiKey: 'AIzaSyBglyim-ZoRC4gF_F79PeM2x8lR3dxCFTM',
+    appId: '1:917936271250:web:d7b5eed7975fb1cd8ddb4b',
+    messagingSenderId: '917936271250',
+    projectId: 'auto-checkin-v2',
+    authDomain: 'auto-checkin-v2.firebaseapp.com',
+    storageBucket: 'auto-checkin-v2.firebasestorage.app',
   );
+
 }

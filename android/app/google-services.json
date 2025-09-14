@@ -1,36 +1,26 @@
 {
   "project_info": {
-    "project_number": "171634447388",
-    "project_id": "checkin-app-55083",
-    "storage_bucket": "checkin-app-55083.firebasestorage.app"
+    "project_number": "917936271250",
+    "project_id": "auto-checkin-v2",
+    "storage_bucket": "auto-checkin-v2.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:171634447388:android:a5fcc18a67f6e3ebbefbd9",
+        "mobilesdk_app_id": "1:917936271250:android:4647542ae944708d8ddb4b",
         "android_client_info": {
           "package_name": "com.example.auto_checkin"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "171634447388-978s6125sdj2uspm9alp9o4vgcf8oknm.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyCQ9Rh5p7of_OS3UUqx-b7U23WpiLaM7iQ"
+          "current_key": "AIzaSyCKA1mms2cGPnc7xsmFanTt170BfU_UcuQ"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "171634447388-978s6125sdj2uspm9alp9o4vgcf8oknm.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
+          "other_platform_oauth_client": []
         }
       }
     }

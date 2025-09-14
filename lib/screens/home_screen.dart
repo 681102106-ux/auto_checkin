@@ -24,7 +24,6 @@ class _HomeScreenState extends State<HomeScreen> {
         builder: (context) => EditCourseScreen(course: courseToEdit),
       ),
     );
-    // ไม่ต้อง setState แล้ว เพราะ StreamBuilder จะอัปเดตให้เอง!
   }
 
   void _addCourse() {
@@ -72,37 +71,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
           final courses = snapshot.data!;
           return ListView.builder(
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // --- [ไอคอนใหม่!] ---
-                IconButton(
-                  icon: const Icon(Icons.people, color: Colors.blueAccent),
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            ManageRosterScreen(course: course),
-                      ),
-                    );
-                  },
-                  tooltip: 'Manage Roster',
-                ),
-                IconButton(
-                  icon: const Icon(Icons.edit, color: Colors.grey),
-                  onPressed: () => _editCourse(course),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.redAccent),
-                  onPressed: () {
-                    /* ... */
-                  },
-                ),
-              ],
-            ),
             itemCount: courses.length,
             itemBuilder: (context, index) {
               final course = courses[index];
+              // --- [จุดแก้ไขที่สำคัญที่สุด!] ---
+              // ย้าย trailing: Row(...) ทั้งหมดเข้ามาไว้ข้างใน ListTile
               return ListTile(
                 leading: const Icon(Icons.book, color: Colors.indigo),
                 title: Text(course.name),
@@ -163,6 +136,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   );
                 },
               );
+              // --- [จบการแก้ไข] ---
             },
           );
         },

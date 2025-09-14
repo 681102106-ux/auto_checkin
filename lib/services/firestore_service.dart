@@ -1,36 +1,46 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../models/attendance_record.dart';
 import '../models/course.dart';
 import '../models/student_profile.dart';
 import '../models/user_role.dart';
-import '../models/attendance_record.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final String _coursesCollection = 'courses';
   final String _usersCollection = 'users';
 
-  // --- [ฟังก์ชันใหม่!] เพิ่มนักเรียนเข้าคลาส ---
+  // --- [ฟังก์ชันใหม่!] ดึงข้อมูลคลาสเดียวจาก ID ---
+  Future<Course?> getCourseById(String courseId) async {
+    try {
+      final doc = await _db.collection(_coursesCollection).doc(courseId).get();
+      if (doc.exists) {
+        return Course.fromFirestore(doc);
+      }
+      return null;
+    } catch (e) {
+      print('Error getting course by ID: $e');
+      return null;
+    }
+  }
+  // --- [จบฟังก์ชันใหม่] ---
+
   Future<void> addStudentToCourse(String courseId, String studentUid) async {
-    // ใช้ arrayUnion เพื่อเพิ่ม UID ใหม่เข้าไปในลิสต์โดยไม่ซ้ำ
     await _db.collection(_coursesCollection).doc(courseId).update({
       'studentUids': FieldValue.arrayUnion([studentUid]),
     });
   }
 
-  // --- [ฟังก์ชันใหม่!] ลบนักเรียนออกจากคลาส ---
   Future<void> removeStudentFromCourse(
     String courseId,
     String studentUid,
   ) async {
-    // ใช้ arrayRemove เพื่อลบ UID ที่ต้องการออกจากลิสต์
     await _db.collection(_coursesCollection).doc(courseId).update({
       'studentUids': FieldValue.arrayRemove([studentUid]),
     });
   }
 
-  // --- [ฟังก์ชันใหม่!] ดึงโปรไฟล์ของนักเรียนหลายๆ คนจาก UID ---
   Future<List<StudentProfile>> getStudentsByUids(List<String> uids) async {
-    if (uids.isEmpty) return []; // ถ้าไม่มี UID ก็ส่งลิสต์ว่างกลับไป
+    if (uids.isEmpty) return [];
     final snapshot = await _db
         .collection(_usersCollection)
         .where(FieldPath.documentId, whereIn: uids)
@@ -40,7 +50,6 @@ class FirestoreService {
         .toList();
   }
 
-  // ... (โค้ดเก่าทั้งหมดเหมือนเดิม) ...
   Stream<DocumentSnapshot<Map<String, dynamic>>> userDocumentStream(
     String uid,
   ) {

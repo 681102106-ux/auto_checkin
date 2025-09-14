@@ -1,4 +1,4 @@
-import 'package.cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // <<<--- แก้ไขที่อยู่ตรงนี้ให้ถูกต้อง
 import 'scoring_rules.dart';
 
 class Course {
@@ -7,8 +7,7 @@ class Course {
   final String professorName;
   final ScoringRules scoringRules;
   final String professorId;
-  final List<String>
-  studentUids; // <<<--- [เพิ่ม!] สมุดรายชื่อนักเรียน (เก็บ UID)
+  final List<String> studentUids;
 
   Course({
     required this.id,
@@ -16,7 +15,7 @@ class Course {
     required this.professorName,
     required this.scoringRules,
     required this.professorId,
-    this.studentUids = const [], // <<<--- [เพิ่ม!] ค่าเริ่มต้นคือลิสต์ว่าง
+    this.studentUids = const [],
   });
 
   Map<String, dynamic> toJson() {
@@ -25,7 +24,7 @@ class Course {
       'professorName': professorName,
       'professorId': professorId,
       'scoringRules': scoringRules.toJson(),
-      'studentUids': studentUids, // <<<--- [เพิ่ม!]
+      'studentUids': studentUids,
     };
   }
 
@@ -37,10 +36,7 @@ class Course {
       professorName: data['professorName'] ?? '',
       professorId: data['professorId'] ?? '',
       scoringRules: ScoringRules.fromJson(data['scoringRules'] ?? {}),
-      // แปลงข้อมูลจาก Firestore ให้เป็น List<String>
-      studentUids: List<String>.from(
-        data['studentUids'] ?? [],
-      ), // <<<--- [เพิ่ม!]
+      studentUids: List<String>.from(data['studentUids'] ?? []),
     );
   }
 }

@@ -1,3 +1,4 @@
+import 'package:auto_checkin/screens/student_screen.dart'; // <<<--- 1. Import หน้าที่จะไป
 import 'package:auto_checkin/services/firestore_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -31,7 +32,6 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
   }
 
   Future<void> _saveProfile() async {
-    // ป้องกันการกดปุ่มซ้ำ
     if (_isLoading) return;
 
     if (_formKey.currentState!.validate()) {
@@ -51,13 +51,19 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
             year: _selectedYear!,
             phoneNumber: _phoneController.text.trim(),
           );
+
           // --- [จุดแก้ไขที่สำคัญที่สุด!] ---
-          // เมื่อสำเร็จแล้ว เราไม่ต้องทำอะไรต่อเลย!
-          // เพราะ AuthGate จะจัดการเปลี่ยนหน้าให้เราเอง
-          // ไม่ต้องมี setState((){ _isLoading = false; }) ตรงนี้แล้ว
+          // เมื่อบันทึกสำเร็จ ให้เราสั่งเปลี่ยนหน้าด้วยตัวเองเลย!
+          if (mounted) {
+            // คำสั่งนี้จะ "วาร์ป" ไปที่ StudentScreen และล้างหน้าเก่าทั้งหมดทิ้ง
+            // ทำให้ผู้ใช้กด Back กลับมาหน้านี้ไม่ได้อีก
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (context) => const StudentScreen()),
+              (route) => false,
+            );
+          }
         }
       } catch (e) {
-        // เราจะหยุดโหลดก็ต่อเมื่อเกิด Error เท่านั้น
         if (mounted) {
           setState(() {
             _isLoading = false;
@@ -67,7 +73,11 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
           ).showSnackBar(SnackBar(content: Text('Error saving profile: $e')));
         }
       }
-      // เอา finally ออกไป เพราะเราจะจัดการ State ใน try/catch แทน
+    } else {
+      // กรณีที่กรอกข้อมูลไม่ครบ ให้หยุดโหลด
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 

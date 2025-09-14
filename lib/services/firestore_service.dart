@@ -1,10 +1,24 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/attendance_record.dart';
+import '../models/course.dart';
 import '../models/student_profile.dart';
 import '../models/user_role.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+
+  Future<Course?> getCourseById(String courseId) async {
+    try {
+      final doc = await _db.collection('courses').doc(courseId).get();
+      if (doc.exists) {
+        return Course.fromFirestore(doc);
+      }
+      return null;
+    } catch (e) {
+      print('Error getting course by ID: $e');
+      return null;
+    }
+  }
 
   // --- ฟังก์ชันหลักที่ AuthGate ใช้ "ฟัง" การเปลี่ยนแปลง ---
   Stream<DocumentSnapshot<Map<String, dynamic>>> userDocumentStream(

@@ -1,4 +1,3 @@
-import 'package:auto_checkin/screens/student_screen.dart'; // <<<--- 1. Import หน้าที่จะไป
 import 'package:auto_checkin/services/firestore_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -18,7 +17,6 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
   final _majorController = TextEditingController();
   final _phoneController = TextEditingController();
   int? _selectedYear = 1;
-
   bool _isLoading = false;
 
   @override
@@ -33,7 +31,6 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
 
   Future<void> _saveProfile() async {
     if (_isLoading) return;
-
     if (_formKey.currentState!.validate()) {
       setState(() {
         _isLoading = true;
@@ -51,33 +48,27 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
             year: _selectedYear!,
             phoneNumber: _phoneController.text.trim(),
           );
-
-          // --- [จุดแก้ไขที่สำคัญที่สุด!] ---
-          // เมื่อบันทึกสำเร็จ ให้เราสั่งเปลี่ยนหน้าด้วยตัวเองเลย!
-          if (mounted) {
-            // คำสั่งนี้จะ "วาร์ป" ไปที่ StudentScreen และล้างหน้าเก่าทั้งหมดทิ้ง
-            // ทำให้ผู้ใช้กด Back กลับมาหน้านี้ไม่ได้อีก
-            Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(builder: (context) => const StudentScreen()),
-              (route) => false,
-            );
-          }
+          // ไม่ต้องทำอะไรต่อ! AuthGate จะจัดการเอง
         }
       } catch (e) {
         if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text('Error saving profile: $e')));
         }
+      } finally {
+        if (mounted && FirebaseAuth.instance.currentUser != null) {
+          // หยุดโหลดเฉพาะตอนที่เกิด Error
+          final isComplete = await FirestoreService().isUserProfileComplete(
+            FirebaseAuth.instance.currentUser!.uid,
+          );
+          if (!isComplete) {
+            setState(() {
+              _isLoading = false;
+            });
+          }
+        }
       }
-    } else {
-      // กรณีที่กรอกข้อมูลไม่ครบ ให้หยุดโหลด
-      setState(() {
-        _isLoading = false;
-      });
     }
   }
 
@@ -93,46 +84,40 @@ class _CreateProfileScreenState extends State<CreateProfileScreen> {
             TextFormField(
               controller: _fullNameController,
               decoration: const InputDecoration(labelText: 'ชื่อ-นามสกุล'),
-              validator: (value) =>
-                  value!.isEmpty ? 'กรุณากรอกชื่อ-นามสกุล' : null,
+              validator: (v) => v!.isEmpty ? 'Required' : null,
             ),
             TextFormField(
               controller: _studentIdController,
               decoration: const InputDecoration(labelText: 'รหัสนักศึกษา'),
-              validator: (value) =>
-                  value!.isEmpty ? 'กรุณากรอกรหัสนักศึกษา' : null,
+              validator: (v) => v!.isEmpty ? 'Required' : null,
             ),
             TextFormField(
               controller: _facultyController,
               decoration: const InputDecoration(labelText: 'คณะ'),
-              validator: (value) => value!.isEmpty ? 'กรุณากรอกคณะ' : null,
+              validator: (v) => v!.isEmpty ? 'Required' : null,
             ),
             TextFormField(
               controller: _majorController,
               decoration: const InputDecoration(labelText: 'สาขา'),
-              validator: (value) => value!.isEmpty ? 'กรุณากรอกสาขา' : null,
+              validator: (v) => v!.isEmpty ? 'Required' : null,
             ),
             DropdownButtonFormField<int>(
               value: _selectedYear,
               decoration: const InputDecoration(labelText: 'ชั้นปี'),
-              items: [1, 2, 3, 4].map((int year) {
-                return DropdownMenuItem<int>(
-                  value: year,
-                  child: Text('ปี $year'),
-                );
-              }).toList(),
-              onChanged: (int? newValue) {
-                setState(() {
-                  _selectedYear = newValue;
-                });
-              },
-              validator: (value) => value == null ? 'กรุณาเลือกชั้นปี' : null,
+              items: [1, 2, 3, 4]
+                  .map(
+                    (y) =>
+                        DropdownMenuItem<int>(value: y, child: Text('ปี $y')),
+                  )
+                  .toList(),
+              onChanged: (v) => setState(() => _selectedYear = v),
+              validator: (v) => v == null ? 'Required' : null,
             ),
             TextFormField(
               controller: _phoneController,
               decoration: const InputDecoration(labelText: 'เบอร์โทรติดต่อ'),
               keyboardType: TextInputType.phone,
-              validator: (value) => value!.isEmpty ? 'กรุณากรอกเบอร์โทร' : null,
+              validator: (v) => v!.isEmpty ? 'Required' : null,
             ),
             const SizedBox(height: 32),
             _isLoading

@@ -17,47 +17,47 @@ class AuthGate extends StatelessWidget {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, authSnapshot) {
-        // --- ส่วนที่ 1: เช็กว่าล็อกอินหรือยัง ---
+        if (authSnapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
         if (!authSnapshot.hasData) {
-          // ยังไม่ได้ล็อกอิน -> ไปหน้า Login
           return const LoginScreen();
         }
 
-        // --- ส่วนที่ 2: ถ้าล็อกอินแล้ว มาเช็กโปรไฟล์กัน ---
         final user = authSnapshot.data!;
         return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-          // เรียก "พ่อครัวใหญ่" ให้ "เงี่ยหูฟัง" การเปลี่ยนแปลงของข้อมูล User
           stream: FirestoreService().userDocumentStream(user.uid),
           builder: (context, userDocSnapshot) {
-            // ถ้ากำลังโหลดข้อมูล...
             if (userDocSnapshot.connectionState == ConnectionState.waiting) {
               return const Scaffold(
                 body: Center(child: CircularProgressIndicator()),
               );
             }
 
-            // ถ้าไม่มีข้อมูล User ใน Firestore เลย (อาจจะเพิ่งสมัคร)
+            // กรณีที่เพิ่งสมัครและยังไม่มีข้อมูลใน Firestore
             if (!userDocSnapshot.hasData || !userDocSnapshot.data!.exists) {
               return const CreateProfileScreen();
             }
 
             final userData = userDocSnapshot.data!.data();
             final isProfileComplete = userData?['profileComplete'] ?? false;
+
+            if (!isProfileComplete) {
+              return const CreateProfileScreen();
+            }
+
             final roleString = userData?['role'] ?? 'student';
             final role = roleString == 'professor'
                 ? UserRole.professor
                 : UserRole.student;
 
-            // ถ้าโปรไฟล์ "ยังไม่สมบูรณ์" -> บังคับไปหน้าสร้างโปรไฟล์
-            if (!isProfileComplete) {
-              return const CreateProfileScreen();
-            }
-
-            // --- ส่วนที่ 3: ถ้าโปรไฟล์สมบูรณ์แล้ว ค่อยมาเช็ก Role ---
             if (role == UserRole.professor) {
-              return const HomeScreen(); // ถ้าเป็นอาจารย์ -> ไปหน้า Home
+              return const HomeScreen();
             } else {
-              return const StudentScreen(); // ถ้าเป็นนักเรียน -> ไปหน้า Student
+              return const StudentScreen();
             }
           },
         );

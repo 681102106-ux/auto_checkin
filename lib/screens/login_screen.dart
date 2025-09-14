@@ -15,33 +15,32 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
 
   Future<void> _signIn() async {
-    // ป้องกันการกดปุ่มซ้ำซ้อนขณะกำลังโหลด
     if (_isLoading) return;
-
     setState(() {
       _isLoading = true;
     });
 
     try {
-      // เมื่อล็อกอินสำเร็จ เราไม่ต้องทำอะไรต่อเลย
-      // เพราะ AuthGate ที่คอย "ฟัง" อยู่ จะจัดการเปลี่ยนหน้าให้เราเอง
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
-      // ไม่ต้องมี setState((){ _isLoading = false; }) ตรงนี้แล้ว
+      // ไม่ต้องทำอะไรต่อ! AuthGate จะจัดการเอง
     } on FirebaseAuthException catch (e) {
-      // เราจะหยุดโหลดก็ต่อเมื่อเกิด Error เท่านั้น
       if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(e.message ?? "Login failed"),
             backgroundColor: Colors.red,
           ),
         );
+      }
+    } finally {
+      // หยุดโหลดเฉพาะตอนที่เกิด Error
+      if (mounted && FirebaseAuth.instance.currentUser == null) {
+        setState(() {
+          _isLoading = false;
+        });
       }
     }
   }
@@ -85,7 +84,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: const Text('Login'),
                   ),
 
-            // ถ้ากำลังโหลดอยู่ ให้ซ่อนปุ่ม Sign Up ไปก่อน
             if (!_isLoading)
               TextButton(
                 onPressed: () {

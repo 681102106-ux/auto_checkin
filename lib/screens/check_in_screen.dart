@@ -1,7 +1,9 @@
 import 'package:auto_checkin/models/attendance.dart';
 import 'package:auto_checkin/models/attendance_record.dart';
+import 'package:auto_checkin/models/student_profile.dart';
 import 'package:auto_checkin/services/firestore_service.dart';
 import 'package:auto_checkin/widgets/attendance_summary_card.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../models/course.dart';
@@ -17,6 +19,15 @@ class CheckInScreen extends StatefulWidget {
 
 class _CheckInScreenState extends State<CheckInScreen> {
   final FirestoreService _firestoreService = FirestoreService();
+  late Future<List<StudentProfile>> _rosterFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _rosterFuture = _firestoreService.getStudentsInCourse(
+      widget.course.studentUids,
+    );
+  }
 
   void _showQrCodeDialog() {
     showDialog(
@@ -62,6 +73,22 @@ class _CheckInScreenState extends State<CheckInScreen> {
     );
   }
 
+  void _markStudentAs(StudentProfile student, AttendanceStatus status) {
+    final newRecord = AttendanceRecord(
+      id: '',
+      courseId: widget.course.id,
+      studentUid: student.uid,
+      studentId: student.studentId,
+      studentName: student.fullName,
+      checkInTime: Timestamp.now(),
+      status: status,
+    );
+    _firestoreService.createAttendanceRecord(
+      courseId: widget.course.id,
+      record: newRecord,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -71,147 +98,168 @@ class _CheckInScreenState extends State<CheckInScreen> {
           IconButton(
             icon: const Icon(Icons.qr_code_2),
             onPressed: _showQrCodeDialog,
+            tooltip: 'Show QR Code',
           ),
         ],
       ),
-      body: StreamBuilder<List<AttendanceRecord>>(
-        stream: _firestoreService.getAttendanceStream(widget.course.id),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
+      body: FutureBuilder<List<StudentProfile>>(
+        future: _rosterFuture,
+        builder: (context, rosterSnapshot) {
+          if (rosterSnapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
+          if (rosterSnapshot.hasError) {
+            return Center(
+              child: Text('Error loading roster: ${rosterSnapshot.error}'),
+            );
+          }
+          if (!rosterSnapshot.hasData || rosterSnapshot.data!.isEmpty) {
+            return const Center(
+              child: Text('No students enrolled in this course.'),
+            );
           }
 
-          final records = snapshot.data ?? [];
+          final roster = rosterSnapshot.data!;
 
-          // --- [จุดแก้ไขที่สำคัญที่สุด!] ---
-          // คำนวณผลสรุปจาก "ทะเบียน" จริง
-          final int totalStudentsInRoster = widget.course.studentUids.length;
-          final int checkedInCount = records.length;
-          final int presentCount = records
-              .where((r) => r.status == AttendanceStatus.present)
-              .length;
-          final int onLeaveCount = records
-              .where((r) => r.status == AttendanceStatus.onLeave)
-              .length;
-          final int lateCount = records
-              .where((r) => r.status == AttendanceStatus.late)
-              .length;
+          return StreamBuilder<List<AttendanceRecord>>(
+            stream: _firestoreService.getAttendanceStream(widget.course.id),
+            builder: (context, attendanceSnapshot) {
+              if (attendanceSnapshot.connectionState ==
+                      ConnectionState.waiting &&
+                  !attendanceSnapshot.hasData) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-          // คนที่ขาด คือ คนทั้งหมดในทะเบียน ลบด้วยคนที่เช็คชื่อแล้วทั้งหมด
-          final int absentCount = totalStudentsInRoster - checkedInCount;
-          // --- [จบการแก้ไข] ---
+              final records = attendanceSnapshot.data ?? [];
+              final attendanceMap = {for (var r in records) r.studentUid: r};
 
-          return Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Row(
-                  children: [
-                    AttendanceSummaryCard(
-                      title: 'Present',
-                      count: presentCount,
-                      icon: Icons.check_circle,
-                      color: Colors.green,
-                    ),
-                    AttendanceSummaryCard(
-                      title: 'Late',
-                      count: lateCount,
-                      icon: Icons.watch_later,
-                      color: Colors.blueGrey,
-                    ),
-                    AttendanceSummaryCard(
-                      title: 'On Leave',
-                      count: onLeaveCount,
-                      icon: Icons.description,
-                      color: Colors.orange,
-                    ),
-                    AttendanceSummaryCard(
-                      title: 'Absent',
-                      count: absentCount > 0
-                          ? absentCount
-                          : 0, // ป้องกันค่าติดลบ
-                      icon: Icons.cancel,
-                      color: Colors.red,
-                    ),
-                  ],
-                ),
-              ),
-              const Divider(),
-              if (records.isEmpty)
-                const Expanded(
-                  child: Center(
-                    child: Text(
-                      'No students have checked in yet.',
-                      style: TextStyle(fontSize: 18, color: Colors.grey),
+              final int presentCount = records
+                  .where((r) => r.status == AttendanceStatus.present)
+                  .length;
+              final int onLeaveCount = records
+                  .where((r) => r.status == AttendanceStatus.onLeave)
+                  .length;
+              final int lateCount = records
+                  .where((r) => r.status == AttendanceStatus.late)
+                  .length;
+
+              // คำนวณคนขาดจริงๆ จากทะเบียน
+              int checkedInCount = presentCount + onLeaveCount + lateCount;
+              final int absentCount = roster.length - checkedInCount;
+
+              return Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      children: [
+                        AttendanceSummaryCard(
+                          title: 'Present',
+                          count: presentCount,
+                          icon: Icons.check_circle,
+                          color: Colors.green,
+                        ),
+                        AttendanceSummaryCard(
+                          title: 'Late',
+                          count: lateCount,
+                          icon: Icons.watch_later,
+                          color: Colors.blueGrey,
+                        ),
+                        AttendanceSummaryCard(
+                          title: 'On Leave',
+                          count: onLeaveCount,
+                          icon: Icons.description,
+                          color: Colors.orange,
+                        ),
+                        AttendanceSummaryCard(
+                          title: 'Absent',
+                          count: absentCount > 0 ? absentCount : 0,
+                          icon: Icons.cancel,
+                          color: Colors.red,
+                        ),
+                      ],
                     ),
                   ),
-                )
-              else
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: records.length,
-                    itemBuilder: (context, index) {
-                      final record = records[index];
-                      return Card(
-                        margin: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(12.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '${record.studentId} - ${record.studentName}',
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Text(
-                                'Checked-in at: ${DateFormat('HH:mm:ss').format(record.checkInTime.toDate())}',
-                              ),
-                              const Divider(),
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceAround,
-                                children: AttendanceStatus.values
-                                    .where((s) => s != AttendanceStatus.unknown)
-                                    .map((status) {
-                                      return Column(
-                                        children: [
-                                          Radio<AttendanceStatus>(
-                                            value: status,
-                                            groupValue: record.status,
-                                            onChanged: (value) {
-                                              if (value != null) {
-                                                _updateStudentStatus(
-                                                  record,
-                                                  value,
-                                                );
-                                              }
-                                            },
-                                          ),
-                                          Text(
-                                            status.toString().split('.').last,
-                                          ),
-                                        ],
-                                      );
-                                    })
-                                    .toList(),
-                              ),
-                            ],
+                  const Divider(),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: roster.length,
+                      itemBuilder: (context, index) {
+                        final student = roster[index];
+                        final record = attendanceMap[student.uid];
+
+                        return Card(
+                          margin: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
                           ),
-                        ),
-                      );
-                    },
+                          color: record == null ? Colors.red.shade50 : null,
+                          child: Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${student.studentId} - ${student.fullName}',
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                if (record != null)
+                                  Text(
+                                    'Checked-in at: ${DateFormat('HH:mm:ss').format(record.checkInTime.toDate())}',
+                                  ),
+                                const Divider(),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceAround,
+                                  children: AttendanceStatus.values
+                                      .where(
+                                        (s) => s != AttendanceStatus.unknown,
+                                      )
+                                      .map((status) {
+                                        return Column(
+                                          children: [
+                                            Radio<AttendanceStatus>(
+                                              value: status,
+                                              groupValue:
+                                                  record?.status ??
+                                                  AttendanceStatus.absent,
+                                              onChanged: (value) {
+                                                if (value != null) {
+                                                  if (record != null) {
+                                                    _updateStudentStatus(
+                                                      record,
+                                                      value,
+                                                    );
+                                                  } else {
+                                                    _markStudentAs(
+                                                      student,
+                                                      value,
+                                                    );
+                                                  }
+                                                }
+                                              },
+                                            ),
+                                            Text(
+                                              status.toString().split('.').last,
+                                            ),
+                                          ],
+                                        );
+                                      })
+                                      .toList(),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                   ),
-                ),
-            ],
+                ],
+              );
+            },
           );
         },
       ),

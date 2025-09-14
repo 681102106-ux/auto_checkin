@@ -9,6 +9,23 @@ class FirestoreService {
   final String _coursesCollection = 'courses';
   final String _usersCollection = 'users';
 
+  Future<List<StudentProfile>> getStudentsInCourse(
+    List<String> studentUids,
+  ) async {
+    if (studentUids.isEmpty) {
+      return []; // ถ้าไม่มีนักเรียนในทะเบียน ก็ส่งลิสต์ว่างกลับไป
+    }
+    // ไปค้นหาใน 'users' collection โดยใช้ UID ทั้งหมดที่อยู่ในทะเบียน
+    final snapshot = await _db
+        .collection(_usersCollection)
+        .where(FieldPath.documentId, whereIn: studentUids)
+        .get();
+
+    return snapshot.docs
+        .map((doc) => StudentProfile.fromFirestore(doc))
+        .toList();
+  }
+
   // --- [ฟังก์ชันใหม่!] ดึงข้อมูลคลาสเดียวจาก ID ---
   Future<Course?> getCourseById(String courseId) async {
     try {

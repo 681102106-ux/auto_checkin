@@ -1,4 +1,4 @@
-import 'package:auto_checkin/auth_gate.dart';
+import 'package:auto_checkin/auth_gate.dart'; // <<<--- Import AuthGate เข้ามา
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'firebase_options.dart';
@@ -21,7 +21,10 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       debugShowCheckedModeBanner: false,
+      // --- [จุดแก้ไขที่สำคัญที่สุด!] ---
+      // เปลี่ยนจาก home: Scaffold(...) ไปเป็น home: const AuthGate()
       home: const AuthGate(),
+      // ---------------------------------
     );
   }
 }

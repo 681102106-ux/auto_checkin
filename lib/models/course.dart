@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package.cloud_firestore/cloud_firestore.dart';
 import 'scoring_rules.dart';
 
 class Course {
@@ -6,7 +6,9 @@ class Course {
   final String name;
   final String professorName;
   final ScoringRules scoringRules;
-  final String professorId; // ID ของอาจารย์เจ้าของคลาส
+  final String professorId;
+  final List<String>
+  studentUids; // <<<--- [เพิ่ม!] สมุดรายชื่อนักเรียน (เก็บ UID)
 
   Course({
     required this.id,
@@ -14,20 +16,19 @@ class Course {
     required this.professorName,
     required this.scoringRules,
     required this.professorId,
+    this.studentUids = const [], // <<<--- [เพิ่ม!] ค่าเริ่มต้นคือลิสต์ว่าง
   });
 
-  // เครื่องมือแปลง Object เป็น Map เพื่อส่งให้ Firestore
   Map<String, dynamic> toJson() {
     return {
       'name': name,
       'professorName': professorName,
       'professorId': professorId,
-      'scoringRules': scoringRules
-          .toJson(), // <<<--- เรียกใช้ toJson ของ scoringRules
+      'scoringRules': scoringRules.toJson(),
+      'studentUids': studentUids, // <<<--- [เพิ่ม!]
     };
   }
 
-  // เครื่องมือแปลงข้อมูลจาก Firestore กลับเป็น Object
   factory Course.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data()!;
     return Course(
@@ -35,9 +36,11 @@ class Course {
       name: data['name'] ?? '',
       professorName: data['professorName'] ?? '',
       professorId: data['professorId'] ?? '',
-      scoringRules: ScoringRules.fromJson(
-        data['scoringRules'] ?? {},
-      ), // <<<--- เรียกใช้ fromJson ของ scoringRules
+      scoringRules: ScoringRules.fromJson(data['scoringRules'] ?? {}),
+      // แปลงข้อมูลจาก Firestore ให้เป็น List<String>
+      studentUids: List<String>.from(
+        data['studentUids'] ?? [],
+      ), // <<<--- [เพิ่ม!]
     );
   }
 }

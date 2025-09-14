@@ -5,6 +5,7 @@ import '../models/course.dart';
 import 'check_in_screen.dart';
 import 'create_course_screen.dart';
 import 'edit_course_screen.dart';
+import 'manage_roster_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -71,6 +72,34 @@ class _HomeScreenState extends State<HomeScreen> {
 
           final courses = snapshot.data!;
           return ListView.builder(
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // --- [ไอคอนใหม่!] ---
+                IconButton(
+                  icon: const Icon(Icons.people, color: Colors.blueAccent),
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            ManageRosterScreen(course: course),
+                      ),
+                    );
+                  },
+                  tooltip: 'Manage Roster',
+                ),
+                IconButton(
+                  icon: const Icon(Icons.edit, color: Colors.grey),
+                  onPressed: () => _editCourse(course),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete, color: Colors.redAccent),
+                  onPressed: () {
+                    /* ... */
+                  },
+                ),
+              ],
+            ),
             itemCount: courses.length,
             itemBuilder: (context, index) {
               final course = courses[index];

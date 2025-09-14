@@ -1,33 +1,52 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/attendance_record.dart';
 import '../models/course.dart';
 import '../models/student_profile.dart';
 import '../models/user_role.dart';
+import '../models/attendance_record.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final String _coursesCollection = 'courses';
+  final String _usersCollection = 'users';
 
-  Future<Course?> getCourseById(String courseId) async {
-    try {
-      final doc = await _db.collection('courses').doc(courseId).get();
-      if (doc.exists) {
-        return Course.fromFirestore(doc);
-      }
-      return null;
-    } catch (e) {
-      print('Error getting course by ID: $e');
-      return null;
-    }
+  // --- [ฟังก์ชันใหม่!] เพิ่มนักเรียนเข้าคลาส ---
+  Future<void> addStudentToCourse(String courseId, String studentUid) async {
+    // ใช้ arrayUnion เพื่อเพิ่ม UID ใหม่เข้าไปในลิสต์โดยไม่ซ้ำ
+    await _db.collection(_coursesCollection).doc(courseId).update({
+      'studentUids': FieldValue.arrayUnion([studentUid]),
+    });
   }
 
-  // --- ฟังก์ชันหลักที่ AuthGate ใช้ "ฟัง" การเปลี่ยนแปลง ---
+  // --- [ฟังก์ชันใหม่!] ลบนักเรียนออกจากคลาส ---
+  Future<void> removeStudentFromCourse(
+    String courseId,
+    String studentUid,
+  ) async {
+    // ใช้ arrayRemove เพื่อลบ UID ที่ต้องการออกจากลิสต์
+    await _db.collection(_coursesCollection).doc(courseId).update({
+      'studentUids': FieldValue.arrayRemove([studentUid]),
+    });
+  }
+
+  // --- [ฟังก์ชันใหม่!] ดึงโปรไฟล์ของนักเรียนหลายๆ คนจาก UID ---
+  Future<List<StudentProfile>> getStudentsByUids(List<String> uids) async {
+    if (uids.isEmpty) return []; // ถ้าไม่มี UID ก็ส่งลิสต์ว่างกลับไป
+    final snapshot = await _db
+        .collection(_usersCollection)
+        .where(FieldPath.documentId, whereIn: uids)
+        .get();
+    return snapshot.docs
+        .map((doc) => StudentProfile.fromFirestore(doc))
+        .toList();
+  }
+
+  // ... (โค้ดเก่าทั้งหมดเหมือนเดิม) ...
   Stream<DocumentSnapshot<Map<String, dynamic>>> userDocumentStream(
     String uid,
   ) {
     return _db.collection('users').doc(uid).snapshots();
   }
 
-  // --- ฟังก์ชันสำหรับหน้าประวัติของนักเรียน ---
   Stream<List<AttendanceRecord>> getStudentAttendanceHistory(
     String studentUid,
   ) {
@@ -43,7 +62,6 @@ class FirestoreService {
         );
   }
 
-  // --- ฟังก์ชันสำหรับหน้าเช็คชื่อของอาจารย์ ---
   Stream<List<AttendanceRecord>> getAttendanceStream(String courseId) {
     return _db
         .collection('courses')
@@ -71,7 +89,6 @@ class FirestoreService {
         .update({'status': newStatus});
   }
 
-  // --- [เพิ่มกลับเข้ามา!] ฟังก์ชันที่ create_profile_screen ต้องการใช้ ---
   Future<bool> isUserProfileComplete(String uid) async {
     try {
       final doc = await _db.collection('users').doc(uid).get();
@@ -84,9 +101,7 @@ class FirestoreService {
       return false;
     }
   }
-  // --- [จบส่วนที่เพิ่มกลับเข้ามา] ---
 
-  // --- ฟังก์ชันที่เกี่ยวข้องกับการสร้าง/อัปเดตโปรไฟล์ ---
   Future<StudentProfile> getStudentProfile(String uid) async {
     try {
       final doc = await _db.collection('users').doc(uid).get();

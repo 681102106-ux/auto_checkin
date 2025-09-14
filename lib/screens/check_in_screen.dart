@@ -83,22 +83,16 @@ class _CheckInScreenState extends State<CheckInScreen> {
           if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
           }
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(
-              child: Text(
-                'No students have checked in yet.',
-                style: TextStyle(fontSize: 18, color: Colors.grey),
-              ),
-            );
-          }
 
-          final records = snapshot.data!;
+          final records = snapshot.data ?? [];
 
-          // คำนวณผลสรุป
+          // --- [จุดแก้ไขที่สำคัญที่สุด!] ---
+          // คำนวณผลสรุปจาก "ทะเบียน" จริง
+          final int totalStudentsInRoster = widget.course.studentUids.length;
+          final int checkedInCount = records.length;
           final int presentCount = records
               .where((r) => r.status == AttendanceStatus.present)
               .length;
-          final int absentCount = 0; // ในอนาคตเราต้องดึงรายชื่อ นศ ทั้งหมดมาลบ
           final int onLeaveCount = records
               .where((r) => r.status == AttendanceStatus.onLeave)
               .length;
@@ -106,10 +100,12 @@ class _CheckInScreenState extends State<CheckInScreen> {
               .where((r) => r.status == AttendanceStatus.late)
               .length;
 
-          // ใช้ Column หุ้มทั้งหมดเพื่อให้มี Dashboard อยู่บนสุด
+          // คนที่ขาด คือ คนทั้งหมดในทะเบียน ลบด้วยคนที่เช็คชื่อแล้วทั้งหมด
+          final int absentCount = totalStudentsInRoster - checkedInCount;
+          // --- [จบการแก้ไข] ---
+
           return Column(
             children: [
-              // --- ส่วนของแดชบอร์ด ---
               Padding(
                 padding: const EdgeInsets.all(8.0),
                 child: Row(
@@ -134,7 +130,9 @@ class _CheckInScreenState extends State<CheckInScreen> {
                     ),
                     AttendanceSummaryCard(
                       title: 'Absent',
-                      count: absentCount,
+                      count: absentCount > 0
+                          ? absentCount
+                          : 0, // ป้องกันค่าติดลบ
                       icon: Icons.cancel,
                       color: Colors.red,
                     ),
@@ -142,69 +140,77 @@ class _CheckInScreenState extends State<CheckInScreen> {
                 ),
               ),
               const Divider(),
-              // --- [จบส่วนแดชบอร์ด] ---
-
-              // --- ส่วนของรายชื่อนักเรียน ---
-              // ใช้ Expanded เพื่อบอกให้ ListView ใช้พื้นที่ที่เหลือทั้งหมด
-              Expanded(
-                child: ListView.builder(
-                  itemCount: records.length,
-                  itemBuilder: (context, index) {
-                    final record = records[index];
-                    return Card(
-                      margin: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(12.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '${record.studentId} - ${record.studentName}',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            Text(
-                              'Checked-in at: ${DateFormat('HH:mm:ss').format(record.checkInTime.toDate())}',
-                            ),
-                            const Divider(),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: AttendanceStatus.values
-                                  .where((s) => s != AttendanceStatus.unknown)
-                                  .map((status) {
-                                    return Column(
-                                      children: [
-                                        Radio<AttendanceStatus>(
-                                          value: status,
-                                          groupValue: record.status,
-                                          onChanged: (value) {
-                                            if (value != null) {
-                                              _updateStudentStatus(
-                                                record,
-                                                value,
-                                              );
-                                            }
-                                          },
-                                        ),
-                                        Text(status.toString().split('.').last),
-                                      ],
-                                    );
-                                  })
-                                  .toList(),
-                            ),
-                          ],
+              if (records.isEmpty)
+                const Expanded(
+                  child: Center(
+                    child: Text(
+                      'No students have checked in yet.',
+                      style: TextStyle(fontSize: 18, color: Colors.grey),
+                    ),
+                  ),
+                )
+              else
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: records.length,
+                    itemBuilder: (context, index) {
+                      final record = records[index];
+                      return Card(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
                         ),
-                      ),
-                    );
-                  },
+                        child: Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${record.studentId} - ${record.studentName}',
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                'Checked-in at: ${DateFormat('HH:mm:ss').format(record.checkInTime.toDate())}',
+                              ),
+                              const Divider(),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceAround,
+                                children: AttendanceStatus.values
+                                    .where((s) => s != AttendanceStatus.unknown)
+                                    .map((status) {
+                                      return Column(
+                                        children: [
+                                          Radio<AttendanceStatus>(
+                                            value: status,
+                                            groupValue: record.status,
+                                            onChanged: (value) {
+                                              if (value != null) {
+                                                _updateStudentStatus(
+                                                  record,
+                                                  value,
+                                                );
+                                              }
+                                            },
+                                          ),
+                                          Text(
+                                            status.toString().split('.').last,
+                                          ),
+                                        ],
+                                      );
+                                    })
+                                    .toList(),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
                 ),
-              ),
-              // --- [จบส่วนรายชื่อ] ---
             ],
           );
         },

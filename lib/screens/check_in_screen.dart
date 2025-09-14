@@ -1,8 +1,9 @@
+import 'package:auto_checkin/models/attendance.dart';
+import 'package:auto_checkin/models/attendance_record.dart';
+import 'package:auto_checkin/services/firestore_service.dart';
 import 'package:flutter/material.dart';
-import 'package:qr_flutter/qr_flutter.dart'; // <<<--- 1. Import เครื่องมือวิเศษเข้ามา
+import 'package:qr_flutter/qr_flutter.dart';
 import '../models/course.dart';
-import '../models/student.dart';
-import '../models/attendance.dart';
 
 class CheckInScreen extends StatefulWidget {
   final Course course;
@@ -79,7 +80,17 @@ class _CheckInScreenState extends State<CheckInScreen> {
       ),
     );
   }
-  // --- [จบโค้ดใหม่] ---
+
+  void _updateStudentStatus(
+    AttendanceRecord record,
+    AttendanceStatus newStatus,
+  ) {
+    _firestoreService.updateAttendanceStatus(
+      courseId: widget.course.id,
+      recordId: record.id,
+      newStatus: newStatus.toString().split('.').last,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -98,109 +109,80 @@ class _CheckInScreenState extends State<CheckInScreen> {
         ],
         // --- [จบโค้ดใหม่] ---
       ),
-      // ... (โค้ดส่วน body และ FloatingActionButton เหมือนเดิมเป๊ะ) ...
-      body: ListView.builder(
-        itemCount: _students.length,
-        itemBuilder: (context, index) {
-          final student = _students[index];
+      body: StreamBuilder<List<AttendanceRecord>>(
+        // "เงี่ยหูฟัง" รายชื่อผู้เข้าเรียนของคลาสนี้
+        stream: _firestoreService.getAttendanceStream(widget.course.id),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Center(
+              child: Text(
+                'No students have checked in yet.',
+                style: TextStyle(fontSize: 18, color: Colors.grey),
+              ),
+            );
+          }
 
-          return Card(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '${student.id} - ${student.name}',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const Divider(),
-                  Row(
+          final records = snapshot.data!;
+
+          return ListView.builder(
+            itemCount: records.length,
+            itemBuilder: (context, index) {
+              final record = records[index];
+              return Card(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: _buildStatusOption(
-                          student.id,
-                          AttendanceStatus.present,
-                          'มาเรียน',
+                      Text(
+                        '${record.studentId} - ${record.studentName}',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                      Expanded(
-                        child: _buildStatusOption(
-                          student.id,
-                          AttendanceStatus.absent,
-                          'ขาด',
-                        ),
+                      Text(
+                        'Checked-in at: ${record.checkInTime.toDate().toLocal()}',
                       ),
-                      Expanded(
-                        child: _buildStatusOption(
-                          student.id,
-                          AttendanceStatus.onLeave,
-                          'ลา',
-                        ),
-                      ),
-                      Expanded(
-                        child: _buildStatusOption(
-                          student.id,
-                          AttendanceStatus.late,
-                          'สาย',
-                        ),
+                      const Divider(),
+                      // ส่วนของ Radio Button สำหรับอาจารย์แก้ไข
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: AttendanceStatus.values
+                            .where((s) => s != AttendanceStatus.unknown)
+                            .map((status) {
+                              return Column(
+                                children: [
+                                  Radio<AttendanceStatus>(
+                                    value: status,
+                                    groupValue: record.status,
+                                    onChanged: (value) {
+                                      if (value != null) {
+                                        _updateStudentStatus(record, value);
+                                      }
+                                    },
+                                  ),
+                                  Text(status.toString().split('.').last),
+                                ],
+                              );
+                            })
+                            .toList(),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  Center(
-                    child: Text(
-                      'คะแนนที่ได้รับ: ${_getScoreForStatus(_attendanceData[student.id])}',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        color: Colors.blueGrey,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+                ),
+              );
+            },
           );
         },
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          print(_attendanceData);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('บันทึกการเช็คชื่อเรียบร้อย!')),
-          );
-        },
-        label: const Text('บันทึก'),
-        icon: const Icon(Icons.save),
-      ),
-    );
-  }
-
-  Widget _buildStatusOption(
-    String studentId,
-    AttendanceStatus status,
-    String title,
-  ) {
-    return Column(
-      children: [
-        Radio<AttendanceStatus>(
-          value: status,
-          groupValue: _attendanceData[studentId],
-          onChanged: (AttendanceStatus? value) {
-            setState(() {
-              if (value != null) {
-                _attendanceData[studentId] = value;
-              }
-            });
-          },
-        ),
-        Text(title),
-      ],
     );
   }
 }

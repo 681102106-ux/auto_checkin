@@ -100,12 +100,13 @@ class _StudentScreenState extends State<StudentScreen> {
                 );
 
                 final record = AttendanceRecord(
+                  id: '', // ไม่ต้องใช้ ID ตอนสร้าง
                   studentUid: currentUser.uid,
                   studentId: profile.studentId,
                   studentName: profile.fullName,
                   checkInTime: Timestamp.now(),
+                  status: AttendanceStatus.present, // <<<--- เพิ่มสถานะเริ่มต้น
                 );
-
                 await FirestoreService().createAttendanceRecord(
                   courseId: classCode,
                   record: record,

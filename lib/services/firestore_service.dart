@@ -1,10 +1,40 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/attendance_record.dart'; // <<<--- Import เข้ามา
+import '../models/attendance_record.dart';
 import '../models/student_profile.dart';
 import '../models/user_role.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+
+  // --- [ฟังก์ชันใหม่!] ดึง "รายชื่อผู้เข้าเรียน" แบบ Real-time ---
+  Stream<List<AttendanceRecord>> getAttendanceStream(String courseId) {
+    return _db
+        .collection('courses')
+        .doc(courseId)
+        .collection('attendance_records')
+        .orderBy('checkInTime', descending: true) // เรียงตามเวลาล่าสุด
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => AttendanceRecord.fromFirestore(doc))
+              .toList(),
+        );
+  }
+  // --- [จบฟังก์ชันใหม่] ---
+
+  // --- [ฟังก์ชันใหม่!] อัปเดต "สถานะ" การเช็คชื่อ (สำหรับอาจารย์) ---
+  Future<void> updateAttendanceStatus({
+    required String courseId,
+    required String recordId,
+    required String newStatus,
+  }) async {
+    await _db
+        .collection('courses')
+        .doc(courseId)
+        .collection('attendance_records')
+        .doc(recordId)
+        .update({'status': newStatus});
+  }
 
   Stream<DocumentSnapshot<Map<String, dynamic>>> userDocumentStream(
     String uid,

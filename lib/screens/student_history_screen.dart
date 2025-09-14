@@ -1,11 +1,46 @@
+import 'package:auto_checkin/models/attendance.dart'; // <<<--- 1. Import ที่จำเป็น
 import 'package:auto_checkin/models/attendance_record.dart';
 import 'package:auto_checkin/services/firestore_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart'; // <<<--- เราจะใช้ package ช่วยจัดรูปแบบวันที่
+import 'package:intl/intl.dart';
 
 class StudentHistoryScreen extends StatelessWidget {
   const StudentHistoryScreen({super.key});
+
+  // --- [ย้ายมาไว้ตรงนี้!] ฟังก์ชันช่วยแสดงไอคอนและสีตามสถานะ ---
+  // การย้ายออกมาไว้นอก build method ทำให้มันกลายเป็นส่วนหนึ่งของ Class
+  // และทำให้ Dart รู้ว่ามันเป็นสิ่งที่คงที่และเชื่อถือได้
+  Icon _getStatusIcon(AttendanceStatus status) {
+    switch (status) {
+      case AttendanceStatus.present:
+        return const Icon(Icons.check_circle, color: Colors.green);
+      case AttendanceStatus.absent:
+        return const Icon(Icons.cancel, color: Colors.red);
+      case AttendanceStatus.onLeave:
+        return const Icon(Icons.description, color: Colors.orange);
+      case AttendanceStatus.late:
+        return const Icon(Icons.watch_later, color: Colors.blueGrey);
+      default:
+        return const Icon(Icons.help, color: Colors.grey);
+    }
+  }
+
+  Color _getStatusColor(AttendanceStatus status) {
+    switch (status) {
+      case AttendanceStatus.present:
+        return Colors.green;
+      case AttendanceStatus.absent:
+        return Colors.red;
+      case AttendanceStatus.onLeave:
+        return Colors.orange;
+      case AttendanceStatus.late:
+        return Colors.blueGrey;
+      default:
+        return Colors.grey;
+    }
+  }
+  // --- [จบส่วนที่ย้ายมา] ---
 
   @override
   Widget build(BuildContext context) {
@@ -49,11 +84,8 @@ class StudentHistoryScreen extends StatelessWidget {
                       ),
                       child: ListTile(
                         leading: _getStatusIcon(record.status),
-                        title: Text(
-                          'Course ID: ${record.courseId}',
-                        ), // เราต้องเพิ่ม courseId ใน Model
+                        title: Text('Course ID: ${record.courseId}'),
                         subtitle: Text(
-                          // จัดรูปแบบวันที่ให้อ่านง่าย
                           DateFormat(
                             'dd MMMM yyyy - HH:mm',
                           ).format(record.checkInTime.toDate()),
@@ -76,36 +108,5 @@ class StudentHistoryScreen extends StatelessWidget {
               },
             ),
     );
-  }
-
-  // --- ฟังก์ชันช่วยแสดงไอคอนและสีตามสถานะ ---
-  Icon _getStatusIcon(dynamic status) {
-    switch (status) {
-      case AttendanceStatus.present:
-        return const Icon(Icons.check_circle, color: Colors.green);
-      case AttendanceStatus.absent:
-        return const Icon(Icons.cancel, color: Colors.red);
-      case AttendanceStatus.onLeave:
-        return const Icon(Icons.description, color: Colors.orange);
-      case AttendanceStatus.late:
-        return const Icon(Icons.watch_later, color: Colors.blueGrey);
-      default:
-        return const Icon(Icons.help, color: Colors.grey);
-    }
-  }
-
-  Color _getStatusColor(dynamic status) {
-    switch (status) {
-      case AttendanceStatus.present:
-        return Colors.green;
-      case AttendanceStatus.absent:
-        return Colors.red;
-      case AttendanceStatus.onLeave:
-        return Colors.orange;
-      case AttendanceStatus.late:
-        return Colors.blueGrey;
-      default:
-        return Colors.grey;
-    }
   }
 }

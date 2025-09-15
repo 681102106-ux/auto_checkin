@@ -21,26 +21,9 @@
 </head>
 <body>
 
-  <!-- [จุดแก้ไขที่สำคัญที่สุด!] วาง "สายไฟ Firebase" ไว้ก่อน Flutter เสมอ -->
-  <script type="module">
-    // Import the functions you need from the SDKs you need
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-    // Your web app's Firebase configuration
-    const firebaseConfig = {
-      apiKey: "AIzaSyBglyim-ZoRC4gF_F79PeM2x8lR3dxCFTM", // <<<--- หมายเหตุ: ควรใช้ค่าจาก firebase_options.dart
-      authDomain: "auto-checkin-v2.firebaseapp.com",
-      projectId: "auto-checkin-v2",
-      storageBucket: "auto-checkin-v2.appspot.com",
-      messagingSenderId: "917936271250",
-      appId: "1:917936271250:web:c336601d169979798ddb4b"
-    };
-  
-    // Initialize Firebase
-    initializeApp(firebaseConfig);
-  </script>
-
-  <!-- "สายไฟ" ของ Flutter ที่จะทำงานหลังจาก Firebase พร้อมแล้ว -->
+  <!-- "สายไฟ" ของ Flutter ที่จะทำหน้าที่ทุกอย่างเอง -->
   <script src="flutter_bootstrap.js" async></script>
 
 </body>
 </html>
+

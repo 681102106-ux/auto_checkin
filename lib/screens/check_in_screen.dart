@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:auto_checkin/models/attendance.dart';
 import 'package:auto_checkin/models/attendance_record.dart';
 import 'package:auto_checkin/models/student_profile.dart';
@@ -9,7 +8,6 @@ import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../models/course.dart';
 import 'package:intl/intl.dart';
-import 'package:auto_checkin/services/location_service.dart';
 
 class CheckInScreen extends StatefulWidget {
   final Course course;
@@ -21,7 +19,6 @@ class CheckInScreen extends StatefulWidget {
 
 class _CheckInScreenState extends State<CheckInScreen> {
   final FirestoreService _firestoreService = FirestoreService();
-  final LocationService _locationService = LocationService();
   late Future<List<StudentProfile>> _rosterFuture;
 
   @override
@@ -32,58 +29,38 @@ class _CheckInScreenState extends State<CheckInScreen> {
     );
   }
 
-  void _showQrCodeDialog() async {
-    try {
-      // 1. ดึงตำแหน่งปัจจุบันของอาจารย์
-      final position = await _locationService.getCurrentPosition();
-
-      // 2. สร้างข้อมูลที่จะฝังลงใน QR Code
-      final qrData = {
-        'courseId': widget.course.id,
-        'lat': position.latitude,
-        'lon': position.longitude,
-        'ts': DateTime.now().millisecondsSinceEpoch, // เวลาปัจจุบัน
-      };
-      final qrString = jsonEncode(qrData);
-      if (!mounted) return;
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          content: SizedBox(
-            width: 300,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                QrImageView(
-                  data: qrString, // <<<--- ใช้ข้อมูลใหม่ที่เข้ารหัสแล้ว
-                  version: QrVersions.auto,
-                  size: 200.0,
-                ),
-                const SizedBox(height: 20),
-                const Text('Scan to Check-in', style: TextStyle(fontWeight: FontWeight.bold)),
-              ],
-            ),
+  void _showQrCodeDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        content: SizedBox(
+          width: 300,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              QrImageView(
+                data: widget.course.id,
+                version: QrVersions.auto,
+                size: 200.0,
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Class Code',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              SelectableText(widget.course.id),
+            ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Close'),
-            )
-          ],
         ),
-      );
-    } catch (e) {
-      // แสดง Error ถ้าดึงตำแหน่งไม่สำเร็จ
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not get location: $e')),
-      );
-    }
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
   }
-
-}
-    
-  
 
   void _updateStudentStatus(
     AttendanceRecord record,
@@ -166,7 +143,6 @@ class _CheckInScreenState extends State<CheckInScreen> {
                   .where((r) => r.status == AttendanceStatus.late)
                   .length;
 
-              // คำนวณคนขาดจริงๆ จากทะเบียน
               int checkedInCount = presentCount + onLeaveCount + lateCount;
               final int absentCount = roster.length - checkedInCount;
 

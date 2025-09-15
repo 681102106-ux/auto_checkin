@@ -74,8 +74,6 @@ class _HomeScreenState extends State<HomeScreen> {
             itemCount: courses.length,
             itemBuilder: (context, index) {
               final course = courses[index];
-              // --- [จุดแก้ไขที่สำคัญที่สุด!] ---
-              // ย้าย trailing: Row(...) ทั้งหมดเข้ามาไว้ข้างใน ListTile
               return ListTile(
                 leading: const Icon(Icons.book, color: Colors.indigo),
                 title: Text(course.name),
@@ -136,7 +134,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   );
                 },
               );
-              // --- [จบการแก้ไข] ---
             },
           );
         },

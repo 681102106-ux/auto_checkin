@@ -21,7 +21,6 @@ class _CheckInScreenState extends State<CheckInScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // เข้ารหัสข้อมูลสำหรับ QR Code
     final qrData = jsonEncode({
       'courseId': widget.course.id,
       'sessionId': widget.sessionId,
@@ -31,35 +30,24 @@ class _CheckInScreenState extends State<CheckInScreen> {
       appBar: AppBar(title: Text("Live Session: ${widget.course.name}")),
       body: Column(
         children: [
-          // ส่วนแสดง QR Code
           Container(
             padding: const EdgeInsets.all(24),
             color: Colors.grey.shade100,
             child: Center(
-              child: Column(
-                children: [
-                  Card(
-                    elevation: 4,
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: QrImageView(
-                        data: qrData,
-                        version: QrVersions.auto,
-                        size: 200.0,
-                      ),
-                    ),
+              child: Card(
+                elevation: 4,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: QrImageView(
+                    data: qrData,
+                    version: QrVersions.auto,
+                    size: 200.0,
                   ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    "Students: Scan this code to check-in!",
-                    style: TextStyle(fontSize: 16),
-                  ),
-                ],
+                ),
               ),
             ),
           ),
           const Divider(thickness: 1),
-          // ส่วนแสดงผล Live
           Padding(
             padding: const EdgeInsets.all(12.0),
             child: Row(
@@ -98,9 +86,6 @@ class _CheckInScreenState extends State<CheckInScreen> {
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasError) {
-                  return Center(child: Text("Error: ${snapshot.error}"));
                 }
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                   return const Center(

@@ -26,8 +26,6 @@ class FirestoreService {
   }
 
   // --- ฟังก์ชันสำหรับ Professor ---
-
-  /// ดึงรายชื่อคอร์สทั้งหมดสำหรับอาจารย์คนนั้นๆ
   Stream<List<Course>> getCoursesStreamForProfessor(String professorId) {
     return _firestore
         .collection('courses')
@@ -40,14 +38,11 @@ class FirestoreService {
         );
   }
 
-  /// ลบคอร์สเรียน
   Future<void> deleteCourse(String courseId) {
     return _firestore.collection('courses').doc(courseId).delete();
   }
 
   // --- ฟังก์ชันสำหรับ Session และ Attendance ---
-
-  /// สร้างคาบเรียนใหม่และคืนค่า ID ของ Session
   Future<String> startNewCheckinSession(String courseId) async {
     final newSessionRef = await _firestore
         .collection('courses')
@@ -61,7 +56,6 @@ class FirestoreService {
     return newSessionRef.id;
   }
 
-  /// Stream รายการคาบเรียนทั้งหมดของคลาสเรียนหนึ่งๆ
   Stream<List<CheckinSession>> getCourseSessionsStream(String courseId) {
     return _firestore
         .collection('courses')
@@ -76,9 +70,22 @@ class FirestoreService {
         );
   }
 
-  // --- ฟังก์ชันสำหรับ Student ---
+  // --- นี่คือฟังก์ชันที่ขาดไปครับ ---
+  Stream<QuerySnapshot> getLiveAttendanceStream(
+    String courseId,
+    String sessionId,
+  ) {
+    return _firestore
+        .collection('courses')
+        .doc(courseId)
+        .collection('sessions')
+        .doc(sessionId)
+        .collection('attendance')
+        .orderBy('timestamp', descending: true)
+        .snapshots();
+  }
 
-  /// Stream รายชื่อคอร์สที่นักเรียนลงทะเบียนไว้
+  // --- ฟังก์ชันสำหรับ Student ---
   Stream<List<Course>> getEnrolledCoursesStream(String studentUid) {
     return _firestore
         .collection('courses')
@@ -89,7 +96,6 @@ class FirestoreService {
         });
   }
 
-  /// บันทึกการเข้าเรียนของนักเรียนในคาบเรียน (Session)
   Future<void> createAttendanceRecord({
     required String courseId,
     required String sessionId,

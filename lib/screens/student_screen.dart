@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:auto_checkin/models/attendance.dart';
 import 'package:auto_checkin/models/attendance_record.dart';
 import 'package:auto_checkin/models/student_profile.dart';
@@ -8,7 +9,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'qr_scanner_screen.dart';
 import 'student_profile_screen.dart';
-import 'student_history_screen.dart'; // <<<--- Import เข้ามา
+import 'student_history_screen.dart';
+import 'package:auto_checkin/services/location_service.dart'; // <<<--- Import เข้ามา
 
 class StudentScreen extends StatefulWidget {
   const StudentScreen({super.key});
@@ -19,6 +21,7 @@ class StudentScreen extends StatefulWidget {
 
 class _StudentScreenState extends State<StudentScreen> {
   final _debugQrController = TextEditingController();
+  final LocationService _locationService = LocationService();
 
   @override
   void dispose() {
@@ -55,6 +58,52 @@ class _StudentScreenState extends State<StudentScreen> {
         );
       },
     );
+  }
+
+  Future<void> _handleScan(String scannedCode) async {
+    try {
+      // 1. แปลง QR String กลับเป็นข้อมูล Map
+      final qrData = jsonDecode(scannedCode) as Map<String, dynamic>;
+      final String courseId = qrData['courseId'];
+      final double profLat = qrData['lat'];
+      final double profLon = qrData['lon'];
+      final int qrTimestamp = qrData['ts'];
+
+      // 2. ตรวจสอบเวลา: QR Code ต้องไม่เก่าเกิน 5 นาที (300,000 มิลลิวินาที)
+      final int nowTimestamp = DateTime.now().millisecondsSinceEpoch;
+      if (nowTimestamp - qrTimestamp > 300000) {
+        throw Exception('QR Code has expired.');
+      }
+
+      // 3. ดึงตำแหน่งปัจจุบันของนักเรียน
+      final studentPosition = await _locationService.getCurrentPosition();
+
+      // 4. ตรวจสอบระยะห่าง: ต้องอยู่ห่างจากอาจารย์ไม่เกิน 100 เมตร
+      final distance = _locationService.getDistanceBetween(
+        profLat,
+        profLon,
+        studentPosition.latitude,
+        studentPosition.longitude,
+      );
+
+      if (distance > 100) {
+        throw Exception(
+          'You are too far from the classroom. Distance: ${distance.round()} meters.',
+        );
+      }
+
+      // 5. ถ้าทุกอย่างผ่าน! ให้แสดง Pop-up ยืนยัน
+      _showCheckInDialog(courseId);
+    } catch (e) {
+      // แสดง Error Message ที่เข้าใจง่าย
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Check-in failed: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   void _showCheckInDialog(String classCode) {
@@ -187,7 +236,7 @@ class _StudentScreenState extends State<StudentScreen> {
                     ),
                   );
                   if (scannedCode != null && scannedCode.isNotEmpty) {
-                    _showCheckInDialog(scannedCode);
+                    await _handleScan(scannedCode);
                   }
                 },
               ),
@@ -222,7 +271,8 @@ class _StudentScreenState extends State<StudentScreen> {
                   onPressed: () {
                     final fakeScannedCode = _debugQrController.text;
                     if (fakeScannedCode.isNotEmpty) {
-                      _showCheckInDialog(fakeScannedCode);
+                      await _handleScan(fakeScannedCode);
+                      
                     }
                   },
                 ),

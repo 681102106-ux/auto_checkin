@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>This app needs access to your location to verify your position for class check-in.</string>
+    <key>NSLocationAlwaysUsageDescription</key>
+    <string>This app needs access to your location to verify your position for class check-in.</string>
     <key>NSCameraUsageDescription</key>
     <string>This app needs camera access to scan QR codes for class check-in. Please allow access to continue using the app.</string>
 	<key>CFBundleDevelopmentRegion</key>

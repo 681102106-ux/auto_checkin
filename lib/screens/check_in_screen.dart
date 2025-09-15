@@ -24,7 +24,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
   @override
   void initState() {
     super.initState();
-    _rosterFuture = _firestoreService.getStudentsInCourse(
+    _rosterFuture = _firestoreService.getStudentsByUids(
       widget.course.studentUids,
     );
   }

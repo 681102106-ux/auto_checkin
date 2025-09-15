@@ -24,6 +24,12 @@ class FirestoreService {
   final String _coursesCollection = 'courses';
   final String _usersCollection = 'users';
 
+  Stream<DocumentSnapshot<Map<String, dynamic>>> getCourseStream(
+    String courseId,
+  ) {
+    return _db.collection(_coursesCollection).doc(courseId).snapshots();
+  }
+
   Future<List<StudentProfile>> getStudentsInCourse(
     List<String> studentUids,
   ) async {

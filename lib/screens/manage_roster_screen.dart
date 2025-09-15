@@ -40,8 +40,11 @@ class _ManageRosterScreenState extends State<ManageRosterScreen> {
                   (results) => {'pending': results[0], 'enrolled': results[1]},
                 ),
             builder: (context, profileSnapshot) {
-              if (!profileSnapshot.hasData) {
+              if (profileSnapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
+              }
+              if (!profileSnapshot.hasData) {
+                return const Center(child: Text('Loading student data...'));
               }
               final pendingStudents = profileSnapshot.data!['pending']!;
               final enrolledStudents = profileSnapshot.data!['enrolled']!;
@@ -90,8 +93,9 @@ class _ManageRosterScreenState extends State<ManageRosterScreen> {
   }) {
     if (students.isEmpty) {
       return SliverToBoxAdapter(
-        child: ListTile(
-          title: Text(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          child: Text(
             isPendingList ? 'No pending requests.' : 'No students enrolled.',
           ),
         ),

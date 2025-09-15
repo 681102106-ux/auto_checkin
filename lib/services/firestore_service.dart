@@ -6,6 +6,10 @@ import '../models/checkin_session.dart';
 class FirestoreService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  Future<void> deleteCourse(String courseId) {
+    return _firestore.collection('courses').doc(courseId).delete();
+  }
+
   // ย้ายฟังก์ชันดึงข้อมูลคอร์สมาไว้ที่นี่
   Stream<List<Course>> getCoursesStream(String professorId) {
     return _firestore
@@ -19,9 +23,6 @@ class FirestoreService {
   }
 
   // เพิ่ม "เมนู" สำหรับลบคลาส
-  Future<void> deleteCourse(String courseId) {
-    return _firestore.collection('courses').doc(courseId).delete();
-  }
 
   // --- ฟังก์ชันเดิม (ยังคงไว้) ---
   Stream<List<Course>> getEnrolledCoursesStream(String studentUid) {

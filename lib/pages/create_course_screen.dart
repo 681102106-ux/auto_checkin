@@ -1,4 +1,4 @@
-import 'package:auto_checkin/models/scoring_rules.dart'; // Import โมเดลใหม่
+import 'package:auto_checkin/models/scoring_rules.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -13,29 +13,19 @@ class CreateCourseScreen extends StatefulWidget {
 class _CreateCourseScreenState extends State<CreateCourseScreen> {
   final _formKey = GlobalKey<FormState>();
   final _courseNameController = TextEditingController();
-  bool _isInviteEnabled = true;
   bool _isLoading = false;
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  @override
-  void dispose() {
-    _courseNameController.dispose();
-    super.dispose();
-  }
-
   Future<void> _createCourse() async {
     if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true;
-      });
-
+      setState(() => _isLoading = true);
       final user = _auth.currentUser;
       if (user == null) return;
 
       try {
-        // กำหนดค่าคะแนนเริ่มต้นตามสเปก
+        // --- แก้ไขตามสเปก ---
         final defaultScoringRules = ScoringRules(
           presentScore: 1,
           lateScore: 0.75,
@@ -47,30 +37,21 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
           'name': _courseNameController.text,
           'professorId': user.uid,
           'professorName': user.displayName ?? user.email,
-          'isInviteEnabled': _isInviteEnabled,
           'createdAt': FieldValue.serverTimestamp(),
-          'scoringRules': defaultScoringRules
-              .toMap(), // เพิ่มกฎการให้คะแนนเข้าไป
+          'scoringRules': defaultScoringRules.toMap(),
+          'studentUids': [],
         });
-
         Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Course created successfully!')),
-        );
       } catch (e) {
-        setState(() {
-          _isLoading = false;
-        });
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to create course: $e')));
+        // ... error handling ...
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // ... UI เดิม ...
     return Scaffold(
       appBar: AppBar(title: const Text('Create New Course')),
       body: Padding(
@@ -81,26 +62,8 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
             children: [
               TextFormField(
                 controller: _courseNameController,
-                decoration: const InputDecoration(
-                  labelText: 'Course Name',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a course name';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 20),
-              SwitchListTile(
-                title: const Text('Enable Invite via QR Code'),
-                value: _isInviteEnabled,
-                onChanged: (bool value) {
-                  setState(() {
-                    _isInviteEnabled = value;
-                  });
-                },
+                decoration: const InputDecoration(labelText: 'Course Name'),
+                validator: (v) => v!.isEmpty ? 'Please enter a name' : null,
               ),
               const SizedBox(height: 20),
               _isLoading
@@ -108,12 +71,6 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                   : ElevatedButton(
                       onPressed: _createCourse,
                       child: const Text('Create Course'),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 50,
-                          vertical: 15,
-                        ),
-                      ),
                     ),
             ],
           ),

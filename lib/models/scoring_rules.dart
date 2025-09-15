@@ -4,7 +4,7 @@ class ScoringRules {
   final double onLeaveScore;
   final double absentScore;
 
-  // แก้ไข Constructor ให้รับค่าเริ่มต้นได้
+  // --- แก้ไขตามสเปก ---
   ScoringRules({
     this.presentScore = 1.0,
     this.lateScore = 0.5,
@@ -12,7 +12,6 @@ class ScoringRules {
     this.absentScore = 0.0,
   });
 
-  // ฟังก์ชันสำหรับแปลงข้อมูลเป็น Map เพื่อบันทึกลง Firestore
   Map<String, dynamic> toMap() {
     return {
       'presentScore': presentScore,

@@ -14,32 +14,37 @@ class AuthGate extends StatelessWidget {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
-        // --- สถานะที่ 1: User ยังไม่ได้ Login ---
+        // User ยังไม่ได้ Login
         if (!snapshot.hasData) {
           return SignInScreen(
             providers: [EmailAuthProvider()],
+            // --- แก้ไขตามสpeg: เพิ่ม actions ---
+            actions: [
+              AuthStateChangeAction<SignedIn>((context, state) {
+                // ตรวจสอบว่าเป็น User ที่เพิ่งสมัครใหม่หรือไม่
+                if (state.user?.metadata.creationTime ==
+                    state.user?.metadata.lastSignInTime) {
+                  print("New user detected! Creating profile...");
+                  FirestoreService().createUserProfileIfNeeded(state.user!);
+                }
+              }),
+            ],
             headerBuilder: (context, constraints, shrinkOffset) {
               return const Padding(
                 padding: EdgeInsets.all(20),
-                child: AspectRatio(
-                  aspectRatio: 1,
-                  // คุณสามารถใส่โลโก้หรือรูปภาพของแอปได้ที่นี่
-                  child: Icon(Icons.school, size: 100, color: Colors.indigo),
-                ),
+                child: Icon(Icons.school, size: 100, color: Colors.indigo),
               );
             },
           );
         }
-
-        // --- สถานะที่ 2: User Login แล้ว, กำลังตรวจสอบ Role ---
-        // เราจะใช้ FutureBuilder ที่แข็งแกร่งขึ้นในการจัดการ
+        // User Login แล้ว, ไปยังหน้าตรวจสอบ Role
         return RoleBasedScreen(user: snapshot.data!);
       },
     );
   }
 }
 
-// Widget ใหม่สำหรับจัดการการแสดงผลตาม Role โดยเฉพาะ
+// Widget สำหรับตรวจสอบ Role อย่างเสถียร
 class RoleBasedScreen extends StatefulWidget {
   final User user;
   const RoleBasedScreen({Key? key, required this.user}) : super(key: key);
@@ -49,18 +54,14 @@ class RoleBasedScreen extends StatefulWidget {
 }
 
 class _RoleBasedScreenState extends State<RoleBasedScreen> {
-  // สร้าง Future ขึ้นมาแค่ครั้งเดียวใน initState
   late Future<DocumentSnapshot> _userProfileFuture;
   final FirestoreService _firestoreService = FirestoreService();
 
   @override
   void initState() {
     super.initState();
-    // ให้ Future ทำงานแค่ครั้งเดียวตอนที่ Widget ถูกสร้างขึ้น
-    // นี่คือการแก้ไขปัญหาอาการช้าและหน้าจอขาวที่สำคัญที่สุด!
-    _userProfileFuture = _firestoreService
-        .createUserProfileIfNeeded(widget.user)
-        .then((_) => _firestoreService.getUserProfile(widget.user.uid));
+    // สร้าง Future แค่ครั้งเดียวเพื่อประสิทธิภาพสูงสุด
+    _userProfileFuture = _firestoreService.getUserProfile(widget.user.uid);
   }
 
   @override
@@ -68,52 +69,29 @@ class _RoleBasedScreenState extends State<RoleBasedScreen> {
     return FutureBuilder<DocumentSnapshot>(
       future: _userProfileFuture,
       builder: (context, snapshot) {
-        // --- สถานะที่ 2.1: กำลังโหลดข้อมูล Role ---
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
-            body: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text("Loading user profile..."),
-                ],
-              ),
-            ),
+            body: Center(child: CircularProgressIndicator()),
           );
         }
-
-        // --- สถานะที่ 2.2: เกิด Error ระหว่างโหลด ---
         if (snapshot.hasError) {
           return Scaffold(
-            body: Center(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Text(
-                  "Error loading profile: ${snapshot.error}\nPlease check your Firestore Rules and internet connection.",
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ),
+            body: Center(child: Text("Error: ${snapshot.error}")),
           );
         }
-
-        // --- สถานะที่ 2.3: โหลดสำเร็จ แต่ไม่เจอข้อมูล Role ---
         if (!snapshot.hasData || !snapshot.data!.exists) {
           return const Scaffold(
-            body: Center(child: Text("User profile not found in database.")),
+            body: Center(child: Text("User profile not found.")),
           );
         }
 
-        // --- สถานะที่ 2.4: โหลดสำเร็จและเจอข้อมูล! ---
         final data = snapshot.data!.data() as Map<String, dynamic>;
         final role = data['role'];
 
         if (role == 'professor') {
-          return const HomeScreen(); // ไปหน้าอาจารย์
+          return const HomeScreen();
         } else {
-          return const StudentScreen(); // ไปหน้านักเรียน (หรือ Role อื่นๆ)
+          return const StudentScreen();
         }
       },
     );

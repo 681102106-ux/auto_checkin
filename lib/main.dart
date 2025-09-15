@@ -7,20 +7,7 @@ import 'firebase_options.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // --- เพิ่มระบบตรวจสอบการเชื่อมต่อ Firebase ---
-  try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-    // ถ้าสำเร็จ ให้พิมพ์ข้อความนี้ใน Console
-    print("Firebase initialized successfully!");
-  } catch (e) {
-    // ถ้าล้มเหลว ให้พิมพ์ Error ออกมา
-    print("ERROR initializing Firebase: $e");
-  }
-  // ------------------------------------------
-
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const MyApp());
 }
 
@@ -35,12 +22,17 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.indigo,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      localizationsDelegates: const [
+      // --- แก้ไขตามสเปก ---
+      localizationsDelegates: [
         FirebaseUILocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const [Locale('en', ''), Locale('th', '')],
+      supportedLocales: const [
+        Locale('en', ''), // English
+        Locale('th', ''), // Thai
+      ],
       home: const AuthGate(),
       debugShowCheckedModeBanner: false,
     );

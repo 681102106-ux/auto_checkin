@@ -5,88 +5,9 @@ import '../models/student_profile.dart';
 import '../models/user_role.dart';
 
 class FirestoreService {
-  Stream<DocumentSnapshot<Map<String, dynamic>>> getCourseStream(
-    String courseId,
-  ) {
-    return _db.collection(_coursesCollection).doc(courseId).snapshots();
-  }
-
-  Future<void> removeStudentFromPending(
-    String courseId,
-    String studentUid,
-  ) async {
-    await _db.collection(_coursesCollection).doc(courseId).update({
-      'pendingStudents': FieldValue.arrayRemove([studentUid]),
-    });
-  }
-
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final String _coursesCollection = 'courses';
   final String _usersCollection = 'users';
-
-  Stream<DocumentSnapshot<Map<String, dynamic>>> getCourseStream(
-    String courseId,
-  ) {
-    return _db.collection(_coursesCollection).doc(courseId).snapshots();
-  }
-
-  Future<List<StudentProfile>> getStudentsInCourse(
-    List<String> studentUids,
-  ) async {
-    if (studentUids.isEmpty) {
-      return []; // ถ้าไม่มีนักเรียนในทะเบียน ก็ส่งลิสต์ว่างกลับไป
-    }
-    // ไปค้นหาใน 'users' collection โดยใช้ UID ทั้งหมดที่อยู่ในทะเบียน
-    final snapshot = await _db
-        .collection(_usersCollection)
-        .where(FieldPath.documentId, whereIn: studentUids)
-        .get();
-
-    return snapshot.docs
-        .map((doc) => StudentProfile.fromFirestore(doc))
-        .toList();
-  }
-
-  // --- [ฟังก์ชันใหม่!] ดึงข้อมูลคลาสเดียวจาก ID ---
-  Future<Course?> getCourseById(String courseId) async {
-    try {
-      final doc = await _db.collection(_coursesCollection).doc(courseId).get();
-      if (doc.exists) {
-        return Course.fromFirestore(doc);
-      }
-      return null;
-    } catch (e) {
-      print('Error getting course by ID: $e');
-      return null;
-    }
-  }
-  // --- [จบฟังก์ชันใหม่] ---
-
-  Future<void> addStudentToCourse(String courseId, String studentUid) async {
-    await _db.collection(_coursesCollection).doc(courseId).update({
-      'studentUids': FieldValue.arrayUnion([studentUid]),
-    });
-  }
-
-  Future<void> removeStudentFromCourse(
-    String courseId,
-    String studentUid,
-  ) async {
-    await _db.collection(_coursesCollection).doc(courseId).update({
-      'studentUids': FieldValue.arrayRemove([studentUid]),
-    });
-  }
-
-  Future<List<StudentProfile>> getStudentsByUids(List<String> uids) async {
-    if (uids.isEmpty) return [];
-    final snapshot = await _db
-        .collection(_usersCollection)
-        .where(FieldPath.documentId, whereIn: uids)
-        .get();
-    return snapshot.docs
-        .map((doc) => StudentProfile.fromFirestore(doc))
-        .toList();
-  }
 
   Stream<DocumentSnapshot<Map<String, dynamic>>> userDocumentStream(
     String uid,
@@ -201,5 +122,60 @@ class FirestoreService {
         .doc(courseId)
         .collection('attendance_records')
         .add(record.toJson());
+  }
+
+  // --- [ฟังก์ชันใหม่!] ดึงข้อมูลคลาสเดียวแบบ Real-time ---
+  Stream<DocumentSnapshot<Map<String, dynamic>>> getCourseStream(
+    String courseId,
+  ) {
+    return _db.collection(_coursesCollection).doc(courseId).snapshots();
+  }
+
+  Future<Course?> getCourseById(String courseId) async {
+    try {
+      final doc = await _db.collection(_coursesCollection).doc(courseId).get();
+      if (doc.exists) {
+        return Course.fromFirestore(doc);
+      }
+      return null;
+    } catch (e) {
+      print('Error getting course by ID: $e');
+      return null;
+    }
+  }
+
+  Future<void> addStudentToCourse(String courseId, String studentUid) async {
+    await _db.collection(_coursesCollection).doc(courseId).update({
+      'studentUids': FieldValue.arrayUnion([studentUid]),
+    });
+  }
+
+  Future<void> removeStudentFromCourse(
+    String courseId,
+    String studentUid,
+  ) async {
+    await _db.collection(_coursesCollection).doc(courseId).update({
+      'studentUids': FieldValue.arrayRemove([studentUid]),
+    });
+  }
+
+  Future<void> removeStudentFromPending(
+    String courseId,
+    String studentUid,
+  ) async {
+    await _db.collection(_coursesCollection).doc(courseId).update({
+      'pendingStudents': FieldValue.arrayRemove([studentUid]),
+    });
+  }
+
+  Future<List<StudentProfile>> getStudentsByUids(List<String> uids) async {
+    if (uids.isEmpty) return [];
+    final snapshot = await _db
+        .collection(_usersCollection)
+        .where(FieldPath.documentId, whereIn: uids)
+        .get();
+    return snapshot.docs
+        .map((doc) => StudentProfile.fromFirestore(doc))
+        .toList();
   }
 }

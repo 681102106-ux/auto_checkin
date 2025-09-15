@@ -6,35 +6,7 @@ import '../models/checkin_session.dart';
 class FirestoreService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  Future<void> deleteCourse(String courseId) {
-    return _firestore.collection('courses').doc(courseId).delete();
-  }
-
-  // ย้ายฟังก์ชันดึงข้อมูลคอร์สมาไว้ที่นี่
-  Stream<List<Course>> getCoursesStream(String professorId) {
-    return _firestore
-        .collection('courses')
-        .where('professorId', isEqualTo: professorId)
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map((snapshot) {
-          return snapshot.docs.map((doc) => Course.fromFirestore(doc)).toList();
-        });
-  }
-
-  // เพิ่ม "เมนู" สำหรับลบคลาส
-
-  // --- ฟังก์ชันเดิม (ยังคงไว้) ---
-  Stream<List<Course>> getEnrolledCoursesStream(String studentUid) {
-    return _firestore
-        .collection('courses')
-        .where('studentUids', arrayContains: studentUid)
-        .snapshots()
-        .map((snapshot) {
-          return snapshot.docs.map((doc) => Course.fromFirestore(doc)).toList();
-        });
-  }
-
+  // --- ฟังก์ชันสำหรับ User ---
   Future<void> createUserProfileIfNeeded(User user) async {
     final userDocRef = _firestore.collection('users').doc(user.uid);
     final doc = await userDocRef.get();
@@ -53,7 +25,27 @@ class FirestoreService {
     return _firestore.collection('users').doc(uid).get();
   }
 
-  // --- ฟังก์ชันใหม่และที่แก้ไขตามสเปก "Revolution" ---
+  // --- ฟังก์ชันสำหรับ Professor ---
+
+  /// ดึงรายชื่อคอร์สทั้งหมดสำหรับอาจารย์คนนั้นๆ
+  Stream<List<Course>> getCoursesStreamForProfessor(String professorId) {
+    return _firestore
+        .collection('courses')
+        .where('professorId', isEqualTo: professorId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) =>
+              snapshot.docs.map((doc) => Course.fromFirestore(doc)).toList(),
+        );
+  }
+
+  /// ลบคอร์สเรียน
+  Future<void> deleteCourse(String courseId) {
+    return _firestore.collection('courses').doc(courseId).delete();
+  }
+
+  // --- ฟังก์ชันสำหรับ Session และ Attendance ---
 
   /// สร้างคาบเรียนใหม่และคืนค่า ID ของ Session
   Future<String> startNewCheckinSession(String courseId) async {
@@ -84,19 +76,17 @@ class FirestoreService {
         );
   }
 
-  /// Stream รายชื่อผู้เข้าเรียนแบบ Real-time สำหรับคาบเรียนปัจจุบัน
-  Stream<QuerySnapshot> getLiveAttendanceStream(
-    String courseId,
-    String sessionId,
-  ) {
+  // --- ฟังก์ชันสำหรับ Student ---
+
+  /// Stream รายชื่อคอร์สที่นักเรียนลงทะเบียนไว้
+  Stream<List<Course>> getEnrolledCoursesStream(String studentUid) {
     return _firestore
         .collection('courses')
-        .doc(courseId)
-        .collection('sessions')
-        .doc(sessionId)
-        .collection('attendance')
-        .orderBy('timestamp', descending: true)
-        .snapshots();
+        .where('studentUids', arrayContains: studentUid)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs.map((doc) => Course.fromFirestore(doc)).toList();
+        });
   }
 
   /// บันทึกการเข้าเรียนของนักเรียนในคาบเรียน (Session)
@@ -112,8 +102,6 @@ class FirestoreService {
         .doc(sessionId)
         .collection('attendance')
         .doc(student.uid);
-
-    // ใช้ set แทน add เพื่อป้องกันการเช็คชื่อซ้ำของคนเดิมในคาบเดิม
     await attendanceRef.set({
       'student_name': student.displayName ?? student.email,
       'student_uid': student.uid,

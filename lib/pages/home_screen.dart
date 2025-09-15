@@ -53,26 +53,42 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       body: StreamBuilder<List<Course>>(
+        // --- นี่คือจุดที่แก้ไขครับ ---
+        // เปลี่ยนชื่อฟังก์ชันให้ตรงกับ Service ที่เราเพิ่งอัปเดต
         stream: _firestoreService.getCoursesStreamForProfessor(user.uid),
         builder: (context, snapshot) {
-          if (!snapshot.hasData)
+          if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(child: Text("Error: ${snapshot.error}"));
+          }
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Center(
+              child: Text('No courses found. Create one to get started!'),
+            );
+          }
           final courses = snapshot.data!;
           return ListView.builder(
             itemCount: courses.length,
             itemBuilder: (context, index) {
               final course = courses[index];
-              return ListTile(
-                title: Text(course.name),
-                // --- แก้ไขตามสเปก ---
-                trailing: IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.redAccent),
-                  onPressed: () => _showDeleteConfirmationDialog(course),
-                ),
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (c) => CourseDetailScreen(course: course),
+              return Card(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                child: ListTile(
+                  title: Text(
+                    course.name,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.redAccent),
+                    onPressed: () => _showDeleteConfirmationDialog(course),
+                  ),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (c) => CourseDetailScreen(course: course),
+                    ),
                   ),
                 ),
               );

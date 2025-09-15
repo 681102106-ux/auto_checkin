@@ -1,4 +1,4 @@
-import 'package:auto_checkin/services/course_service.dart'; // <<<--- 1. Import พ่อครัวเข้ามา
+import 'package:auto_checkin/services/course_service.dart';
 import 'package:flutter/material.dart';
 import '../models/course.dart';
 import '../models/scoring_rules.dart';
@@ -15,22 +15,20 @@ class EditCourseScreen extends StatefulWidget {
 class _EditCourseScreenState extends State<EditCourseScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  // --- 2. สร้าง Controller สำหรับทุกช่องกรอก ---
   late TextEditingController _courseNameController;
   late TextEditingController _profNameController;
-  // เราจะใช้ ScoringRules object โดยตรง ไม่ต้องมี controller แยก
   late ScoringRules _scoringRules;
+  late bool _joinCodeEnabled; // เพิ่ม State สำหรับสวิตช์
 
   @override
   void initState() {
     super.initState();
-    // 3. กำหนดค่าเริ่มต้นให้ Controller จากข้อมูลคลาสที่รับเข้ามา
     _courseNameController = TextEditingController(text: widget.course.name);
     _profNameController = TextEditingController(
       text: widget.course.professorName,
     );
-    // สร้างสำเนาของ scoring rules เพื่อให้แก้ไขได้โดยไม่กระทบของเดิมทันที
     _scoringRules = ScoringRules.fromJson(widget.course.scoringRules.toJson());
+    _joinCodeEnabled = widget.course.joinCodeEnabled;
   }
 
   @override
@@ -40,19 +38,24 @@ class _EditCourseScreenState extends State<EditCourseScreen> {
     super.dispose();
   }
 
-  // --- 4. สร้างฟังก์ชัน _saveChanges ขึ้นมา ---
   void _saveChanges() {
     if (_formKey.currentState!.validate()) {
       final updatedCourse = Course(
-        id: widget.course.id, // ใช้ ID เดิม
-        name: _courseNameController.text, // อ่านค่าจาก Controller
-        professorName: _profNameController.text, // อ่านค่าจาก Controller
-        professorId: widget.course.professorId, // ใช้ professorId เดิม
-        scoringRules: _scoringRules, // ใช้ scoring rules ที่อัปเดตแล้ว
+        id: widget.course.id,
+        name: _courseNameController.text,
+        professorName: _profNameController.text,
+        professorId: widget.course.professorId,
+        scoringRules: _scoringRules,
+        joinCode: widget
+            .course
+            .joinCode, // <<<--- [จุดแก้ไข!] เพิ่ม joinCode เดิมเข้าไป
+        joinCodeEnabled: _joinCodeEnabled, // <<<--- เพิ่มค่าจากสวิตช์
+        studentUids: widget.course.studentUids,
+        pendingStudents: widget.course.pendingStudents,
       );
 
       CourseService().updateCourse(updatedCourse).then((_) {
-        Navigator.of(context).pop(); // กลับไปหน้า Home
+        Navigator.of(context).pop();
       });
     }
   }
@@ -77,6 +80,17 @@ class _EditCourseScreenState extends State<EditCourseScreen> {
               decoration: const InputDecoration(labelText: 'Professor Name'),
               validator: (value) =>
                   value!.isEmpty ? 'Please enter a name' : null,
+            ),
+            const Divider(height: 32),
+            // --- เพิ่มสวิตช์เปิด/ปิดรหัสเชิญ ---
+            SwitchListTile(
+              title: const Text('Enable Join Code'),
+              value: _joinCodeEnabled,
+              onChanged: (bool value) {
+                setState(() {
+                  _joinCodeEnabled = value;
+                });
+              },
             ),
             const Divider(height: 32),
             Text(
@@ -113,7 +127,7 @@ class _EditCourseScreenState extends State<EditCourseScreen> {
             ),
             const SizedBox(height: 32),
             ElevatedButton(
-              onPressed: _saveChanges, // <<<--- 5. เรียกใช้ฟังก์ชันที่ถูกต้อง
+              onPressed: _saveChanges,
               child: const Text('Save Changes'),
             ),
           ],

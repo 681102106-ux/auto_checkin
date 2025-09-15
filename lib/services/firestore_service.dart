@@ -5,6 +5,12 @@ import '../models/student_profile.dart';
 import '../models/user_role.dart';
 
 class FirestoreService {
+  Stream<DocumentSnapshot<Map<String, dynamic>>> getCourseStream(
+    String courseId,
+  ) {
+    return _db.collection(_coursesCollection).doc(courseId).snapshots();
+  }
+
   Future<void> removeStudentFromPending(
     String courseId,
     String studentUid,

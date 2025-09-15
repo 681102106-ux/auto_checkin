@@ -5,54 +5,42 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="An auto check-in application.">
+  <meta name="description" content="A new Flutter project.">
 
   <!-- iOS meta tags & icons -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="auto_checkin">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
-  
-  <!-- PWA meta tags -->
-  <meta name="mobile-web-app-capable" content="yes">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-
-  <title>Auto Check-in</title>
+  <title>auto_checkin</title>
   <link rel="manifest" href="manifest.json">
-
-  <!-- นี่คือส่วนที่แก้ไขตามคำแนะนำของ Flutter ครับ -->
-  <script>
-    // The value below is injected by flutter build, do not touch.
-    const serviceWorkerVersion = "{{flutter_service_worker_version}}";
-  </script>
-
 </head>
 <body>
 
-  <!-- =================================================================== -->
-  <!-- START: Firebase Initialization Script -->
-  <!-- =================================================================== -->
+  <!-- [จุดแก้ไขที่สำคัญที่สุด!] วาง "สายไฟ Firebase" ไว้ก่อน Flutter เสมอ -->
   <script type="module">
+    // Import the functions you need from the SDKs you need
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-  const firebaseConfig = {
-    apiKey: "AIzaSyBglyim-ZoRC4gF_F79PeM2x8lR3dxCFTM",
-    authDomain: "auto-checkin-v2.firebaseapp.com",
-    projectId: "auto-checkin-v2",
-    storageBucket: "auto-checkin-v2.firebasestorage.app",
-    messagingSenderId: "917936271250",
-    appId: "1:917936271250:web:c336601d169979798ddb4b"
-  };
-    const app = initializeApp(firebaseConfig);
-  </script>
-  <!-- =================================================================== -->
-  <!-- END: Firebase Initialization Script -->
-  <!-- =================================================================== -->
-
-  <script src="flutter.js" defer></script>
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyBglyim-ZoRC4gF_F79PeM2x8lR3dxCFTM", // <<<--- หมายเหตุ: ควรใช้ค่าจาก firebase_options.dart
+      authDomain: "auto-checkin-v2.firebaseapp.com",
+      projectId: "auto-checkin-v2",
+      storageBucket: "auto-checkin-v2.appspot.com",
+      messagingSenderId: "917936271250",
+      appId: "1:917936271250:web:c336601d169979798ddb4b"
+    };
   
+    // Initialize Firebase
+    initializeApp(firebaseConfig);
+  </script>
+
+  <!-- "สายไฟ" ของ Flutter ที่จะทำงานหลังจาก Firebase พร้อมแล้ว -->
+  <script src="flutter_bootstrap.js" async></script>
+
 </body>
 </html>
-

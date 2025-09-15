@@ -19,7 +19,9 @@ class _ManageRosterScreenState extends State<ManageRosterScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text('Manage: ${widget.course.name}')),
+      // --- [ผ่าตัดใหญ่!] ใช้ StreamBuilder เป็นหัวใจหลัก ---
       body: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+        // "เงี่ยหูฟัง" การเปลี่ยนแปลงของคลาสนี้โดยตรง
         stream: _firestoreService.getCourseStream(widget.course.id),
         builder: (context, courseSnapshot) {
           if (!courseSnapshot.hasData) {
@@ -27,77 +29,86 @@ class _ManageRosterScreenState extends State<ManageRosterScreen> {
           }
           final course = Course.fromFirestore(courseSnapshot.data!);
 
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // --- ส่วนที่ 1: รายชื่อนักเรียนที่รออนุมัติ ---
-              _buildSectionTitle(
-                'Pending Approval (${course.pendingStudents.length})',
-              ),
-              _buildStudentList(
-                course.pendingStudents,
-                isPendingList: true,
-                courseId: course.id,
-              ),
-
-              const Divider(thickness: 2),
-
-              // --- ส่วนที่ 2: รายชื่อนักเรียนที่อนุมัติแล้ว ---
-              _buildSectionTitle(
-                'Enrolled Students (${course.studentUids.length})',
-              ),
-              Expanded(
-                child: _buildStudentList(
-                  course.studentUids,
-                  isPendingList: false,
-                  courseId: course.id,
+          // --- [ใช้ FutureBuilder] เพื่อดึงข้อมูลโปรไฟล์ทั้งหมดในครั้งเดียว ---
+          return FutureBuilder<Map<String, List<StudentProfile>>>(
+            // เราจะดึงข้อมูล "รออนุมัติ" และ "อนุมัติแล้ว" มาพร้อมกันเลย
+            future:
+                Future.wait([
+                  _firestoreService.getStudentsByUids(course.pendingStudents),
+                  _firestoreService.getStudentsByUids(course.studentUids),
+                ]).then(
+                  (results) => {'pending': results[0], 'enrolled': results[1]},
                 ),
-              ),
-            ],
+            builder: (context, profileSnapshot) {
+              if (!profileSnapshot.hasData) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              final pendingStudents = profileSnapshot.data!['pending']!;
+              final enrolledStudents = profileSnapshot.data!['enrolled']!;
+
+              return CustomScrollView(
+                slivers: [
+                  // --- ส่วนที่ 1: รายชื่อนักเรียนที่รออนุมัติ ---
+                  SliverToBoxAdapter(
+                    child: _buildSectionTitle(
+                      'Pending Approval (${pendingStudents.length})',
+                    ),
+                  ),
+                  _buildStudentSliverList(
+                    pendingStudents,
+                    isPendingList: true,
+                    courseId: course.id,
+                  ),
+
+                  const SliverToBoxAdapter(child: Divider(thickness: 2)),
+
+                  // --- ส่วนที่ 2: รายชื่อนักเรียนที่อนุมัติแล้ว ---
+                  SliverToBoxAdapter(
+                    child: _buildSectionTitle(
+                      'Enrolled Students (${enrolledStudents.length})',
+                    ),
+                  ),
+                  _buildStudentSliverList(
+                    enrolledStudents,
+                    isPendingList: false,
+                    courseId: course.id,
+                  ),
+                ],
+              );
+            },
           );
         },
       ),
     );
   }
 
-  // --- [Widget ใหม่!] สร้าง Widget แยกสำหรับแสดงลิสต์ ---
-  Widget _buildStudentList(
-    List<String> studentUids, {
+  // --- [Widget ใหม่!] สร้าง Widget แยกสำหรับแสดงลิสต์ใน CustomScrollView ---
+  Widget _buildStudentSliverList(
+    List<StudentProfile> students, {
     required bool isPendingList,
     required String courseId,
   }) {
-    if (studentUids.isEmpty) {
-      return ListTile(
-        title: Text(
-          isPendingList ? 'No pending requests.' : 'No students enrolled.',
+    if (students.isEmpty) {
+      return SliverToBoxAdapter(
+        child: ListTile(
+          title: Text(
+            isPendingList ? 'No pending requests.' : 'No students enrolled.',
+          ),
         ),
       );
     }
 
-    return FutureBuilder<List<StudentProfile>>(
-      future: _firestoreService.getStudentsByUids(studentUids),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData)
-          return const Center(child: CircularProgressIndicator());
-        final students = snapshot.data!;
-
-        return ListView.builder(
-          shrinkWrap: true, // ทำให้ ListView สูงเท่าที่จำเป็น
-          physics:
-              const NeverScrollableScrollPhysics(), // ปิดการเลื่อนของ ListView ย่อย
-          itemCount: students.length,
-          itemBuilder: (context, index) {
-            final student = students[index];
-            return ListTile(
-              title: Text(student.fullName),
-              subtitle: Text(student.studentId),
-              trailing: isPendingList
-                  ? _buildPendingActions(courseId, student.uid)
-                  : _buildEnrolledActions(courseId, student.uid),
-            );
-          },
+    return SliverList(
+      delegate: SliverChildBuilderDelegate((context, index) {
+        final student = students[index];
+        return ListTile(
+          title: Text(student.fullName),
+          subtitle: Text(student.studentId),
+          trailing: isPendingList
+              ? _buildPendingActions(courseId, student.uid)
+              : _buildEnrolledActions(courseId, student.uid),
         );
-      },
+      }, childCount: students.length),
     );
   }
 

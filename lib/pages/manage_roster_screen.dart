@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/course.dart'; // เพิ่มการ import Course model
+import '../models/course.dart';
 
 class ManageRosterScreen extends StatefulWidget {
-  final Course course; // เปลี่ยนเป็นรับ Course object
+  final Course course;
 
-  const ManageRosterScreen({
-    Key? key,
-    required this.course, // เปลี่ยน parameter ใน constructor
-  }) : super(key: key);
+  const ManageRosterScreen({Key? key, required this.course}) : super(key: key);
 
   @override
   _ManageRosterScreenState createState() => _ManageRosterScreenState();
@@ -17,32 +14,29 @@ class ManageRosterScreen extends StatefulWidget {
 class _ManageRosterScreenState extends State<ManageRosterScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Stream to get students waiting for approval
   Stream<QuerySnapshot> _getPendingStudents() {
     return _firestore
         .collection('courses')
-        .doc(widget.course.id) // เปลี่ยนมาใช้ widget.course.id
+        .doc(widget.course.id)
         .collection('roster')
         .where('status', isEqualTo: 'pending')
         .snapshots();
   }
 
-  // Stream to get enrolled (approved) students
   Stream<QuerySnapshot> _getEnrolledStudents() {
     return _firestore
         .collection('courses')
-        .doc(widget.course.id) // เปลี่ยนมาใช้ widget.course.id
+        .doc(widget.course.id)
         .collection('roster')
         .where('status', isEqualTo: 'present')
         .snapshots();
   }
 
-  // Function to approve a student's check-in
   Future<void> _approveStudent(String studentDocId) async {
     try {
       await _firestore
           .collection('courses')
-          .doc(widget.course.id) // เปลี่ยนมาใช้ widget.course.id
+          .doc(widget.course.id)
           .collection('roster')
           .doc(studentDocId)
           .update({'status': 'present'});
@@ -56,17 +50,14 @@ class _ManageRosterScreenState extends State<ManageRosterScreen> {
     }
   }
 
-  // Function to deny a student's check-in
   Future<void> _denyStudent(String studentDocId) async {
     try {
       await _firestore
           .collection('courses')
-          .doc(widget.course.id) // เปลี่ยนมาใช้ widget.course.id
+          .doc(widget.course.id)
           .collection('roster')
           .doc(studentDocId)
-          .update({
-            'status': 'absent',
-          }); // Or delete(), depending on desired logic
+          .update({'status': 'absent'});
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Student denied.')));
@@ -81,9 +72,7 @@ class _ManageRosterScreenState extends State<ManageRosterScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'Manage: ${widget.course.name}',
-        ), // เปลี่ยนมาใช้ widget.course.name
+        title: Text('Manage: ${widget.course.name}'),
         backgroundColor: Colors.deepPurple,
       ),
       body: SingleChildScrollView(
@@ -124,7 +113,12 @@ class _ManageRosterScreenState extends State<ManageRosterScreen> {
           return const Center(child: CircularProgressIndicator());
         }
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Text('No pending requests.');
+          return const Card(
+            child: Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Text('No pending requests.'),
+            ),
+          );
         }
         if (snapshot.hasError) {
           return Text('Error: ${snapshot.error}');
@@ -139,7 +133,6 @@ class _ManageRosterScreenState extends State<ManageRosterScreen> {
           itemBuilder: (context, index) {
             final student = pendingStudents[index];
             final studentData = student.data() as Map<String, dynamic>;
-            // Assuming student data contains 'student_name' and 'student_id'
             final studentName =
                 studentData['student_name'] ?? 'Unknown Student';
             final studentId = studentData['student_id'] ?? 'No ID';
@@ -181,7 +174,12 @@ class _ManageRosterScreenState extends State<ManageRosterScreen> {
           return const Center(child: CircularProgressIndicator());
         }
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Text('No students enrolled.');
+          return const Card(
+            child: Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Text('No students checked in yet.'),
+            ),
+          );
         }
         if (snapshot.hasError) {
           return Text('Error: ${snapshot.error}');

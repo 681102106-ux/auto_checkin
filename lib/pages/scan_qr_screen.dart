@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+// แก้ไข import
 import 'package:qr_code_scanner/qr_code_scanner.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -80,24 +81,20 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
 
       bool isNewlyRegistered = false;
       if (!studentDoc.exists) {
-        // First time scanning for this professor -> Register
         final bool? registered = await _showRegistrationDialog(
           studentRef,
           student,
         );
         if (registered == null || !registered) {
-          // User cancelled the dialog
           throw Exception("Registration cancelled.");
         }
         isNewlyRegistered = true;
       }
 
-      // If just registered, need a slight delay to ensure data is retrievable
       if (isNewlyRegistered) {
         await Future.delayed(const Duration(milliseconds: 500));
       }
 
-      // Now that the student is registered (or was already), proceed to check-in
       final studentMasterData =
           (await studentRef.get()).data() as Map<String, dynamic>?;
 
@@ -113,14 +110,14 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
           backgroundColor: Colors.green,
         ),
       );
-      Navigator.pop(context); // Go back after successful scan
+      Navigator.pop(context);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
       );
     } finally {
-      if (mounted && !_isProcessing) {
-        // This block might not be needed if we always pop, but as a safeguard:
+      // Allow user to scan again after a delay if something went wrong and they are still on the page
+      if (mounted) {
         Future.delayed(const Duration(seconds: 3), () {
           if (mounted) {
             setState(() {
@@ -221,8 +218,7 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
               ),
               actions: [
                 TextButton(
-                  onPressed: () =>
-                      Navigator.pop(context, false), // Cancel button
+                  onPressed: () => Navigator.pop(context, false),
                   child: const Text('Cancel'),
                 ),
                 TextButton(
@@ -235,7 +231,7 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
                         'email': student.email,
                         'registered_at': FieldValue.serverTimestamp(),
                       });
-                      Navigator.pop(context, true); // Success
+                      Navigator.pop(context, true);
                     }
                   },
                   child: const Text('Register'),

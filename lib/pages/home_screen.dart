@@ -5,8 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:auto_checkin/models/course.dart';
 import 'package:auto_checkin/pages/create_course_screen.dart';
 import 'package:auto_checkin/pages/manage_roster_screen.dart';
+// แก้ไข import
 import 'package:auto_checkin/pages/generate_qr_screen.dart';
-// import 'package:auto_checkin/pages/scan_qr_screen.dart'; // Uncomment for student role
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -31,7 +31,6 @@ class HomeScreen extends StatelessWidget {
         title: const Text('My Courses'),
         backgroundColor: Colors.deepPurple,
         actions: [
-          // เพิ่มปุ่มเมนู
           PopupMenuButton<String>(
             onSelected: (value) {
               if (value == 'roster') {
@@ -102,6 +101,7 @@ class HomeScreen extends StatelessWidget {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
+                                // แก้ไขการเรียกใช้
                                 builder: (context) => GenerateQRScreen(
                                   courseId: course.id,
                                   professorId: course.professorId,

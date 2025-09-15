@@ -13,6 +13,7 @@ class AuthGate extends StatelessWidget {
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
+          // ลบ const ออกจาก SignInScreen
           return SignInScreen(
             providerConfigs: const [EmailProviderConfiguration()],
             headerBuilder: (context, constraints, shrinkOffset) {
@@ -20,7 +21,8 @@ class AuthGate extends StatelessWidget {
                 padding: const EdgeInsets.all(20),
                 child: AspectRatio(
                   aspectRatio: 1,
-                  child: Image.asset('assets/images/logo.png'),
+                  // แก้ไข path รูปภาพให้ถูกต้อง
+                  child: Image.asset('assets/logo.png'),
                 ),
               );
             },
@@ -43,18 +45,14 @@ class AuthGate extends StatelessWidget {
             },
           );
         }
-        // Logic การแยก Role ของ User
-        // ตรวจสอบว่าเป็น Email ของ @psu.ac.th หรือไม่
         if (snapshot.data!.email!.contains('psu.ac.th')) {
-          // ถ้ามีตัวเลขใน Email สันนิษฐานว่าเป็นนักเรียน
           if (snapshot.data!.email!.contains(RegExp(r'[0-9]'))) {
             return const StudentScreen();
           } else {
-            // ถ้าไม่มีตัวเลข สันนิษฐานว่าเป็นอาจารย์
+            // ลบ const ออกจาก HomeScreen
             return const HomeScreen();
           }
         } else {
-          // ถ้าไม่ใช่ Email @psu.ac.th ให้ไปที่หน้า Student (หรือหน้าอื่นๆ ตามที่ต้องการ)
           return const StudentScreen();
         }
       },

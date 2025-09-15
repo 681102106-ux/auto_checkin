@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:auto_checkin/pages/scan_qr_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -13,156 +11,133 @@ class StudentScreen extends StatefulWidget {
 }
 
 class _StudentScreenState extends State<StudentScreen> {
-  // ... (โค้ดเดิมทั้งหมดของ StudentScreen) ...
-  // ผมจะคัดลอกมาให้ทั้งหมดด้านล่าง และแก้ส่วนที่ผิดให้ครับ
-
   final student = FirebaseAuth.instance.currentUser;
   final db = FirebaseFirestore.instance;
-  Map<String, dynamic>? studentData;
-  Map<String, dynamic>? studentYear;
 
-  @override
-  void initState() {
-    super.initState();
-  }
-
-  getStudentData() async {
-    await db
-        .collection('students')
-        .doc(student!.uid)
-        .get()
-        .then((value) => studentData = value.data());
-    return studentData;
-  }
-
-  getStudentYear() async {
-    await db
-        .collection('students')
-        .doc(student!.uid)
-        .get()
-        .then((value) => studentData = value.data());
-    return studentData;
+  // Stream ที่ดึงข้อมูลวิชาที่นักเรียนลงทะเบียนและเช็คชื่อแล้ว
+  Stream<QuerySnapshot> _getCheckedInCourses() {
+    if (student == null) {
+      return const Stream.empty();
+    }
+    // ใช้ collectionGroup query เพื่อค้นหาใน subcollection 'roster' ของทุก 'courses'
+    return db
+        .collectionGroup('roster')
+        .where('student_uid', isEqualTo: student!.uid)
+        .where('status', isEqualTo: 'present')
+        .snapshots();
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder(
-      future: getStudentData(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.done) {
-          return Scaffold(
-            appBar: AppBar(
-              title: const Text('Student'),
-              actions: [
-                IconButton(
-                  onPressed: () {
-                    FirebaseAuth.instance.signOut();
-                  },
-                  icon: const Icon(Icons.logout),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Student Dashboard'),
+        backgroundColor: Colors.deepPurple,
+        actions: [
+          IconButton(
+            onPressed: () {
+              FirebaseAuth.instance.signOut();
+            },
+            icon: const Icon(Icons.logout),
+            tooltip: 'Logout',
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20.0),
+            decoration: const BoxDecoration(
+              color: Colors.deepPurple,
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(30),
+                bottomRight: Radius.circular(30),
+              ),
+            ),
+            child: Column(
+              children: [
+                const CircleAvatar(
+                  radius: 40,
+                  backgroundColor: Colors.white,
+                  child: Icon(Icons.person, size: 50, color: Colors.deepPurple),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  student?.email ?? 'Student',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
-            body: Center(
-              child: Column(
-                children: [
-                  Container(
-                    height: 200,
-                    width: double.infinity,
-                    decoration: const BoxDecoration(
-                      color: Colors.blue,
-                      borderRadius: BorderRadius.only(
-                        bottomLeft: Radius.circular(30),
-                        bottomRight: Radius.circular(30),
-                      ),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const CircleAvatar(
-                          radius: 50,
-                          backgroundImage: NetworkImage(
-                            'https://picsum.photos/200',
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          studentData!['name'],
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 5),
-                        Text(
-                          "ID : ${studentData!['student_id']}",
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'My Courses',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 10),
-                  Expanded(
-                    child: StreamBuilder(
-                      stream: db
-                          .collection('enrollments')
-                          .where('student_id', isEqualTo: student!.uid)
-                          .snapshots(),
-                      builder: (context, snapshot) {
-                        if (snapshot.hasData) {
-                          return ListView.builder(
-                            itemCount: snapshot.data!.docs.length,
-                            itemBuilder: (context, index) {
-                              return Card(
-                                child: ListTile(
-                                  title: Text(
-                                    snapshot.data!.docs[index]['course_name'],
-                                  ),
-                                  subtitle: Text(
-                                    snapshot
-                                        .data!
-                                        .docs[index]['course_description'],
-                                  ),
-                                ),
-                              );
-                            },
-                          );
-                        } else {
-                          return const Center(
-                            child: CircularProgressIndicator(),
-                          );
-                        }
-                      },
-                    ),
-                  ),
-                ],
-              ),
+          ),
+          const Padding(
+            padding: EdgeInsets.all(16.0),
+            child: Text(
+              'My Checked-in Courses',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
-            floatingActionButton: FloatingActionButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    // แก้ไขจาก QrScannerScreen() -> ScanQRScreen()
-                    builder: (context) => const ScanQRScreen(),
-                  ),
+          ),
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: _getCheckedInCourses(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return const Center(
+                    child: Text('You have not checked into any courses yet.'),
+                  );
+                }
+
+                final courses = snapshot.data!.docs;
+                return ListView.builder(
+                  itemCount: courses.length,
+                  itemBuilder: (context, index) {
+                    final data = courses[index].data() as Map<String, dynamic>;
+                    return Card(
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 6,
+                      ),
+                      child: ListTile(
+                        leading: const Icon(
+                          Icons.check_circle,
+                          color: Colors.green,
+                        ),
+                        title: Text(
+                          data['student_name'] ?? 'Course Name Missing',
+                        ),
+                        subtitle: Text(
+                          'Checked in at: ${DateTime.now().toLocal()}',
+                        ), // Placeholder time
+                      ),
+                    );
+                  },
                 );
               },
-              child: const Icon(Icons.qr_code_scanner),
             ),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const ScanQRScreen()),
           );
-        } else {
-          return const Center(child: CircularProgressIndicator());
-        }
-      },
+        },
+        label: const Text('Scan QR'),
+        icon: const Icon(Icons.qr_code_scanner),
+        backgroundColor: Colors.deepPurple,
+      ),
     );
   }
 }

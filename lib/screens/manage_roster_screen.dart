@@ -13,17 +13,6 @@ class ManageRosterScreen extends StatefulWidget {
 
 class _ManageRosterScreenState extends State<ManageRosterScreen> {
   final FirestoreService _firestoreService = FirestoreService();
-  final TextEditingController _studentUidController = TextEditingController();
-
-  void _addStudent() {
-    if (_studentUidController.text.isNotEmpty) {
-      _firestoreService.addStudentToCourse(
-        widget.course.id,
-        _studentUidController.text.trim(),
-      );
-      _studentUidController.clear();
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,46 +20,92 @@ class _ManageRosterScreenState extends State<ManageRosterScreen> {
       appBar: AppBar(title: Text('Manage: ${widget.course.name}')),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _studentUidController,
-                    decoration: const InputDecoration(
-                      labelText: 'Enter Student UID',
-                    ),
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.add_circle, color: Colors.green),
-                  onPressed: _addStudent,
-                ),
-              ],
-            ),
+          // --- [ส่วนที่ 1: รายชื่อนักเรียนที่รออนุมัติ] ---
+          _buildSectionTitle(
+            'Pending Approval (${widget.course.pendingStudents.length})',
           ),
-          const Divider(),
+          FutureBuilder<List<StudentProfile>>(
+            future: _firestoreService.getStudentsByUids(
+              widget.course.pendingStudents,
+            ),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData)
+                return const Center(child: CircularProgressIndicator());
+              final pending = snapshot.data!;
+              if (pending.isEmpty)
+                return const ListTile(title: Text('No pending requests.'));
+
+              return Column(
+                children: pending
+                    .map(
+                      (student) => ListTile(
+                        title: Text(student.fullName),
+                        subtitle: Text(student.studentId),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(
+                                Icons.check_circle,
+                                color: Colors.green,
+                              ),
+                              onPressed: () {
+                                // อนุมัติ: ลบออกจาก pending แล้วเพิ่มเข้า roster
+                                _firestoreService.removeStudentFromPending(
+                                  widget.course.id,
+                                  student.uid,
+                                );
+                                _firestoreService.addStudentToCourse(
+                                  widget.course.id,
+                                  student.uid,
+                                );
+                              },
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.cancel, color: Colors.red),
+                              onPressed: () =>
+                                  _firestoreService.removeStudentFromPending(
+                                    widget.course.id,
+                                    student.uid,
+                                  ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                    .toList(),
+              );
+            },
+          ),
+          const Divider(thickness: 2),
+
+          // --- [ส่วนที่ 2: รายชื่อนักเรียนที่อนุมัติแล้ว] ---
+          _buildSectionTitle(
+            'Enrolled Students (${widget.course.studentUids.length})',
+          ),
           Expanded(
-            child: StreamBuilder<List<StudentProfile>>(
-              stream: _firestoreService
-                  .getStudentsByUids(widget.course.studentUids)
-                  .asStream(),
+            child: FutureBuilder<List<StudentProfile>>(
+              future: _firestoreService.getStudentsByUids(
+                widget.course.studentUids,
+              ),
               builder: (context, snapshot) {
                 if (!snapshot.hasData)
                   return const Center(child: CircularProgressIndicator());
-                final students = snapshot.data!;
+                final enrolled = snapshot.data!;
+                if (enrolled.isEmpty)
+                  return const Center(child: Text('No students enrolled.'));
+
                 return ListView.builder(
-                  itemCount: students.length,
+                  itemCount: enrolled.length,
                   itemBuilder: (context, index) {
-                    final student = students[index];
+                    final student = enrolled[index];
                     return ListTile(
                       title: Text(student.fullName),
                       subtitle: Text(student.studentId),
                       trailing: IconButton(
                         icon: const Icon(
-                          Icons.remove_circle,
-                          color: Colors.red,
+                          Icons.remove_circle_outline,
+                          color: Colors.redAccent,
                         ),
                         onPressed: () =>
                             _firestoreService.removeStudentFromCourse(
@@ -86,6 +121,13 @@ class _ManageRosterScreenState extends State<ManageRosterScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Text(title, style: Theme.of(context).textTheme.titleLarge),
     );
   }
 }

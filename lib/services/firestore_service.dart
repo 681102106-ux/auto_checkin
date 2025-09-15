@@ -5,6 +5,15 @@ import '../models/student_profile.dart';
 import '../models/user_role.dart';
 
 class FirestoreService {
+  Future<void> removeStudentFromPending(
+    String courseId,
+    String studentUid,
+  ) async {
+    await _db.collection(_coursesCollection).doc(courseId).update({
+      'pendingStudents': FieldValue.arrayRemove([studentUid]),
+    });
+  }
+
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final String _coursesCollection = 'courses';
   final String _usersCollection = 'users';

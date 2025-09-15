@@ -1,5 +1,6 @@
-import 'package:auto_checkin/auth_gate.dart'; // <<<--- Import AuthGate เข้ามา
+import 'package:auto_checkin/auth_gate.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_ui_localizations/firebase_ui_localizations.dart'; // <<<--- Import เข้ามา
 import 'package:flutter/material.dart';
 import 'firebase_options.dart';
 
@@ -14,6 +15,12 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // --- [เพิ่มเข้ามา] กำหนด Label ภาษาไทย ---
+    final fbaLabels = FirebaseUILocalizations.labels;
+    fbaLabels[DefaultLocalizations.of(context).locale.languageCode] =
+        ThaiFirebaseUILocalizations();
+    // --- [จบส่วนที่เพิ่ม] ---
+
     return MaterialApp(
       title: 'Auto Check-in App',
       theme: ThemeData(
@@ -21,10 +28,10 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       debugShowCheckedModeBanner: false,
-      // --- [จุดแก้ไขที่สำคัญที่สุด!] ---
-      // เปลี่ยนจาก home: Scaffold(...) ไปเป็น home: const AuthGate()
+      // --- [เพิ่มเข้ามา] บอกให้แอปใช้เมนูภาษาไทย ---
+      localizationsDelegates: [FirebaseUILocalizations.delegate],
+      // --- [จบส่วนที่เพิ่ม] ---
       home: const AuthGate(),
-      // ---------------------------------
     );
   }
 }

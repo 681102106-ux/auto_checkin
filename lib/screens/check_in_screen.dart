@@ -1,4 +1,4 @@
-import 'package.auto_checkin/models/attendance.dart';
+import 'package:auto_checkin/models/attendance.dart'; // <<<--- หยิบเครื่องมือเข้ามา
 import 'package:auto_checkin/models/attendance_record.dart';
 import 'package:auto_checkin/models/student_profile.dart';
 import 'package:auto_checkin/services/firestore_service.dart';
@@ -39,24 +39,16 @@ class _CheckInScreenState extends State<CheckInScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               QrImageView(
-                data: widget.course.id, // QR Code ยังคงใช้ ID ที่ไม่ซ้ำกัน
+                data: widget.course.id,
                 version: QrVersions.auto,
                 size: 200.0,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               const Text(
-                'Join Code',
+                'Class Code',
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
-              // --- [จุดแก้ไข!] แสดง joinCode ที่อ่านง่าย ---
-              SelectableText(
-                widget.course.joinCode,
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 2,
-                ),
-              ),
+              SelectableText(widget.course.id),
             ],
           ),
         ),
@@ -135,15 +127,15 @@ class _CheckInScreenState extends State<CheckInScreen> {
               final records = attendanceSnapshot.data ?? [];
               final attendanceMap = {for (var r in records) r.studentUid: r};
 
-              int presentCount = 0;
-              int onLeaveCount = 0;
-              int lateCount = 0;
-
-              for (var rec in records) {
-                if (rec.status == AttendanceStatus.present) presentCount++;
-                if (rec.status == AttendanceStatus.onLeave) onLeaveCount++;
-                if (rec.status == AttendanceStatus.late) lateCount++;
-              }
+              final int presentCount = records
+                  .where((r) => r.status == AttendanceStatus.present)
+                  .length;
+              final int onLeaveCount = records
+                  .where((r) => r.status == AttendanceStatus.onLeave)
+                  .length;
+              final int lateCount = records
+                  .where((r) => r.status == AttendanceStatus.late)
+                  .length;
 
               int checkedInCount = records.length;
               final int absentCount = roster.length - checkedInCount;

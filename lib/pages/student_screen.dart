@@ -1,142 +1,114 @@
-import 'package:auto_checkin/pages/scan_qr_screen.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:auto_checkin/models/course.dart';
+import 'package:auto_checkin/services/firestore_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class StudentScreen extends StatefulWidget {
-  const StudentScreen({super.key});
+  const StudentScreen({Key? key}) : super(key: key);
 
   @override
   State<StudentScreen> createState() => _StudentScreenState();
 }
 
 class _StudentScreenState extends State<StudentScreen> {
-  final student = FirebaseAuth.instance.currentUser;
-  final db = FirebaseFirestore.instance;
-
-  // Stream ที่ดึงข้อมูลวิชาที่นักเรียนลงทะเบียนและเช็คชื่อแล้ว
-  Stream<QuerySnapshot> _getCheckedInCourses() {
-    if (student == null) {
-      return const Stream.empty();
-    }
-    // ใช้ collectionGroup query เพื่อค้นหาใน subcollection 'roster' ของทุก 'courses'
-    return db
-        .collectionGroup('roster')
-        .where('student_uid', isEqualTo: student!.uid)
-        .where('status', isEqualTo: 'present')
-        .snapshots();
-  }
+  final FirestoreService _firestoreService = FirestoreService();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   @override
   Widget build(BuildContext context) {
+    final user = _auth.currentUser;
+    // หาก user เป็น null ให้แสดงหน้าจอว่างๆ ป้องกัน error
+    if (user == null) {
+      return const Scaffold(body: Center(child: Text("Not logged in.")));
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Student Dashboard'),
-        backgroundColor: Colors.deepPurple,
+        title: const Text('My Dashboard'),
         actions: [
           IconButton(
-            onPressed: () {
-              FirebaseAuth.instance.signOut();
-            },
             icon: const Icon(Icons.logout),
+            onPressed: () => FirebaseAuth.instance.signOut(),
             tooltip: 'Logout',
           ),
         ],
       ),
-      body: Column(
-        children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20.0),
-            decoration: const BoxDecoration(
-              color: Colors.deepPurple,
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(30),
-                bottomRight: Radius.circular(30),
-              ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ส่วนหัวต้อนรับ
+            Text(
+              'Welcome, ${user.displayName ?? user.email}!',
+              style: Theme.of(context).textTheme.headlineSmall,
             ),
-            child: Column(
-              children: [
-                const CircleAvatar(
-                  radius: 40,
-                  backgroundColor: Colors.white,
-                  child: Icon(Icons.person, size: 50, color: Colors.deepPurple),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  student?.email ?? 'Student',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Padding(
-            padding: EdgeInsets.all(16.0),
-            child: Text(
-              'My Checked-in Courses',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-          ),
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: _getCheckedInCourses(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                }
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(
-                    child: Text('You have not checked into any courses yet.'),
-                  );
-                }
+            const SizedBox(height: 20),
 
-                final courses = snapshot.data!.docs;
-                return ListView.builder(
-                  itemCount: courses.length,
-                  itemBuilder: (context, index) {
-                    final data = courses[index].data() as Map<String, dynamic>;
-                    return Card(
-                      margin: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 6,
-                      ),
-                      child: ListTile(
-                        leading: const Icon(
-                          Icons.check_circle,
-                          color: Colors.green,
-                        ),
-                        title: Text(
-                          data['student_name'] ?? 'Course Name Missing',
-                        ),
-                        subtitle: Text(
-                          'Checked in at: ${DateTime.now().toLocal()}',
-                        ), // Placeholder time
+            // หมายเหตุ: สามารถวางปุ่ม Action ต่างๆ (เช่น Join Class) ไว้ตรงนี้ได้
+            const Divider(),
+            const SizedBox(height: 10),
+
+            // ส่วนหัวของ "ชั้นหนังสือ"
+            Text(
+              "My Enrolled Courses",
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 10),
+
+            // "ชั้นหนังสือ" ที่ดึงข้อมูลแบบ Real-time
+            Expanded(
+              child: StreamBuilder<List<Course>>(
+                stream: _firestoreService.getEnrolledCoursesStream(user.uid),
+                builder: (context, snapshot) {
+                  // สถานะ: กำลังโหลด
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  // สถานะ: มี Error
+                  if (snapshot.hasError) {
+                    return Center(child: Text('Error: ${snapshot.error}'));
+                  }
+                  // สถานะ: ไม่มีข้อมูล (ยังไม่เคยลงทะเบียน)
+                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return const Center(
+                      child: Text(
+                        "You haven't enrolled in any courses yet.\nJoin a class by scanning a QR code.",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 16, color: Colors.grey),
                       ),
                     );
-                  },
-                );
-              },
+                  }
+
+                  // สถานะ: มีข้อมูล แสดงผลรายชื่อวิชา
+                  final courses = snapshot.data!;
+
+                  return ListView.builder(
+                    itemCount: courses.length,
+                    itemBuilder: (context, index) {
+                      final course = courses[index];
+                      return Card(
+                        margin: const EdgeInsets.symmetric(vertical: 8.0),
+                        elevation: 2,
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            child: const Icon(Icons.class_outlined),
+                          ),
+                          title: Text(
+                            course.name,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Text(course.professorName),
+                          // สามารถเพิ่ม onTap เพื่อไปยังหน้ารายละเอียดของคลาสได้ในอนาคต
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
             ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const ScanQRScreen()),
-          );
-        },
-        label: const Text('Scan QR'),
-        icon: const Icon(Icons.qr_code_scanner),
-        backgroundColor: Colors.deepPurple,
+          ],
+        ),
       ),
     );
   }

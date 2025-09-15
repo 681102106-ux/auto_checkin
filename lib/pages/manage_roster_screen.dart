@@ -1,6 +1,6 @@
+import 'package:auto_checkin/models/course.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/course.dart';
 
 class ManageRosterScreen extends StatefulWidget {
   final Course course;
@@ -13,6 +13,44 @@ class ManageRosterScreen extends StatefulWidget {
 
 class _ManageRosterScreenState extends State<ManageRosterScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  Future<void> _approveStudent(String studentDocId) async {
+    try {
+      // 1. อัปเดตสถานะใน roster ของคลาส
+      await _firestore
+          .collection('courses')
+          .doc(widget.course.id)
+          .collection('roster')
+          .doc(studentDocId)
+          .update({'status': 'present'});
+
+      // 2. เพิ่มนักเรียนเข้าไปในทะเบียนของคอร์สหลัก
+      await _firestore.collection('courses').doc(widget.course.id).update({
+        'studentUids': FieldValue.arrayUnion([studentDocId]),
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Student approved successfully!')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to approve student: $e')));
+    }
+  }
+
+  Future<void> _denyStudent(String studentDocId) async {
+    try {
+      await _firestore
+          .collection('courses')
+          .doc(widget.course.id)
+          .collection('roster')
+          .doc(studentDocId)
+          .update({'status': 'denied'}); // หรือจะใช้ .delete() ก็ได้
+    } catch (e) {
+      // Handle error
+    }
+  }
 
   Stream<QuerySnapshot> _getPendingStudents() {
     return _firestore
@@ -28,187 +66,77 @@ class _ManageRosterScreenState extends State<ManageRosterScreen> {
         .collection('courses')
         .doc(widget.course.id)
         .collection('roster')
-        .where('status', isEqualTo: 'present')
+        .where('status', whereIn: ['present', 'absent'])
         .snapshots();
   }
 
-  Future<void> _approveStudent(String studentDocId) async {
-    try {
-      await _firestore
-          .collection('courses')
-          .doc(widget.course.id)
-          .collection('roster')
-          .doc(studentDocId)
-          .update({'status': 'present'});
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Student approved successfully!')),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error approving student: $e')));
-    }
-  }
+  Widget _buildStudentList(
+    Stream<QuerySnapshot> stream, {
+    bool isPending = false,
+  }) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: stream,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return Center(
+            child: Text(
+              isPending ? 'No pending requests' : 'No students enrolled',
+            ),
+          );
+        }
 
-  Future<void> _denyStudent(String studentDocId) async {
-    try {
-      await _firestore
-          .collection('courses')
-          .doc(widget.course.id)
-          .collection('roster')
-          .doc(studentDocId)
-          .update({'status': 'absent'});
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Student denied.')));
-    } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error denying student: $e')));
-    }
+        return ListView(
+          children: snapshot.data!.docs.map((doc) {
+            Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+            return ListTile(
+              title: Text(data['student_name'] ?? 'No Name'),
+              subtitle: Text(data['student_id'] ?? 'No ID'),
+              trailing: isPending
+                  ? Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.check, color: Colors.green),
+                          onPressed: () => _approveStudent(doc.id),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.red),
+                          onPressed: () => _denyStudent(doc.id),
+                        ),
+                      ],
+                    )
+                  : Text(data['status'] ?? ''),
+            );
+          }).toList(),
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Manage: ${widget.course.name}'),
-        backgroundColor: Colors.deepPurple,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(widget.course.name),
+          bottom: const TabBar(
+            tabs: [
+              Tab(text: 'Pending Approval'),
+              Tab(text: 'Enrolled Students'),
+            ],
+          ),
+        ),
+        body: TabBarView(
           children: [
-            _buildSectionTitle('Pending Approval'),
-            _buildPendingList(),
-            const SizedBox(height: 24.0),
-            _buildSectionTitle('Enrolled Students'),
-            _buildEnrolledList(),
+            _buildStudentList(_getPendingStudents(), isPending: true),
+            _buildStudentList(_getEnrolledStudents()),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildSectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 20.0,
-          fontWeight: FontWeight.bold,
-          color: Colors.deepPurple,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPendingList() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: _getPendingStudents(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Card(
-            child: Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Text('No pending requests.'),
-            ),
-          );
-        }
-        if (snapshot.hasError) {
-          return Text('Error: ${snapshot.error}');
-        }
-
-        final pendingStudents = snapshot.data!.docs;
-
-        return ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: pendingStudents.length,
-          itemBuilder: (context, index) {
-            final student = pendingStudents[index];
-            final studentData = student.data() as Map<String, dynamic>;
-            final studentName =
-                studentData['student_name'] ?? 'Unknown Student';
-            final studentId = studentData['student_id'] ?? 'No ID';
-
-            return Card(
-              elevation: 2.0,
-              margin: const EdgeInsets.symmetric(vertical: 4.0),
-              child: ListTile(
-                title: Text(studentName),
-                subtitle: Text('ID: $studentId'),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.check_circle, color: Colors.green),
-                      onPressed: () => _approveStudent(student.id),
-                      tooltip: 'Approve',
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.cancel, color: Colors.red),
-                      onPressed: () => _denyStudent(student.id),
-                      tooltip: 'Deny',
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildEnrolledList() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: _getEnrolledStudents(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Card(
-            child: Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Text('No students checked in yet.'),
-            ),
-          );
-        }
-        if (snapshot.hasError) {
-          return Text('Error: ${snapshot.error}');
-        }
-
-        final enrolledStudents = snapshot.data!.docs;
-
-        return ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: enrolledStudents.length,
-          itemBuilder: (context, index) {
-            final student = enrolledStudents[index];
-            final studentData = student.data() as Map<String, dynamic>;
-            final studentName =
-                studentData['student_name'] ?? 'Unknown Student';
-
-            return Card(
-              elevation: 2.0,
-              margin: const EdgeInsets.symmetric(vertical: 4.0),
-              child: ListTile(
-                title: Text(studentName),
-                subtitle: const Text('Status: Present'),
-                leading: const Icon(Icons.person, color: Colors.deepPurple),
-              ),
-            );
-          },
-        );
-      },
     );
   }
 }

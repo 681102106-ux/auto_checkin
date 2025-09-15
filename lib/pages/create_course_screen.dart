@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../models/course.dart';
 
 class CreateCourseScreen extends StatefulWidget {
   const CreateCourseScreen({Key? key}) : super(key: key);
@@ -12,10 +11,18 @@ class CreateCourseScreen extends StatefulWidget {
 
 class _CreateCourseScreenState extends State<CreateCourseScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _descriptionController = TextEditingController();
-  bool _isInviteEnabled = true; // State สำหรับ Switch
+  final _courseNameController = TextEditingController();
+  bool _isInviteEnabled = true;
   bool _isLoading = false;
+
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  @override
+  void dispose() {
+    _courseNameController.dispose();
+    super.dispose();
+  }
 
   Future<void> _createCourse() async {
     if (_formKey.currentState!.validate()) {
@@ -23,25 +30,23 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
         _isLoading = true;
       });
 
+      final user = _auth.currentUser;
+      if (user == null) return;
+
       try {
-        final user = FirebaseAuth.instance.currentUser;
-        if (user == null) {
-          throw Exception("User not logged in");
-        }
+        await _firestore.collection('courses').add({
+          'name': _courseNameController.text,
+          'professorId': user.uid,
+          'professorName': user.displayName ?? user.email,
+          'isInviteEnabled': _isInviteEnabled,
+          'studentUids': [], // <-- เพิ่ม field นี้ตอนสร้างคอร์สใหม่
+          'createdAt': FieldValue.serverTimestamp(),
+        });
 
-        final newCourse = Course(
-          id: '', // Firestore will generate this
-          name: _nameController.text.trim(),
-          description: _descriptionController.text.trim(),
-          professorId: user.uid,
-          isInviteEnabled: _isInviteEnabled, // ส่งค่าจาก Switch
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Course created successfully!')),
         );
-
-        await FirebaseFirestore.instance
-            .collection('courses')
-            .add(newCourse.toMap());
-
-        Navigator.pop(context);
       } catch (e) {
         setState(() {
           _isLoading = false;
@@ -56,22 +61,18 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Create New Course'),
-        backgroundColor: Colors.deepPurple,
-      ),
+      appBar: AppBar(title: const Text('Create New Course')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
-          child: ListView(
+          child: Column(
             children: [
               TextFormField(
-                controller: _nameController,
+                controller: _courseNameController,
                 decoration: const InputDecoration(
                   labelText: 'Course Name',
                   border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.school),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -80,40 +81,27 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                   return null;
                 },
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _descriptionController,
-                decoration: const InputDecoration(
-                  labelText: 'Course Description',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.description),
-                ),
-                maxLines: 3,
-              ),
-              const SizedBox(height: 16),
-              // Switch สำหรับเปิด/ปิดระบบเชิญ
+              const SizedBox(height: 20),
               SwitchListTile(
-                title: const Text('Enable QR Code Check-in'),
-                subtitle: const Text('Allow students to check-in via QR code.'),
+                title: const Text('Enable Invite via QR Code'),
                 value: _isInviteEnabled,
                 onChanged: (bool value) {
                   setState(() {
                     _isInviteEnabled = value;
                   });
                 },
-                activeColor: Colors.deepPurple,
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 20),
               _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : ElevatedButton.icon(
+                  ? const CircularProgressIndicator()
+                  : ElevatedButton(
                       onPressed: _createCourse,
-                      icon: const Icon(Icons.add),
-                      label: const Text('Create Course'),
+                      child: const Text('Create Course'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.deepPurple,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        textStyle: const TextStyle(fontSize: 16),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 50,
+                          vertical: 15,
+                        ),
                       ),
                     ),
             ],

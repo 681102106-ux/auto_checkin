@@ -3,16 +3,18 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class Course {
   final String id;
   final String name;
-  final String description;
   final String professorId;
-  final bool isInviteEnabled; // เพิ่ม field นี้
+  final String professorName;
+  final bool isInviteEnabled;
+  final List<String> studentUids; // เพิ่ม field ใหม่สำหรับเก็บรายชื่อนักเรียน
 
   Course({
     required this.id,
     required this.name,
-    required this.description,
     required this.professorId,
-    required this.isInviteEnabled, // เพิ่มใน constructor
+    required this.professorName,
+    required this.isInviteEnabled,
+    this.studentUids = const [], // กำหนดค่าเริ่มต้นเป็น array ว่าง
   });
 
   factory Course.fromFirestore(DocumentSnapshot doc) {
@@ -20,19 +22,21 @@ class Course {
     return Course(
       id: doc.id,
       name: data['name'] ?? '',
-      description: data['description'] ?? '',
       professorId: data['professorId'] ?? '',
-      // ดึงค่า isInviteEnabled ถ้าไม่มีให้เป็น true (เปิดใช้งานเป็นค่าเริ่มต้น)
-      isInviteEnabled: data['isInviteEnabled'] ?? true,
+      professorName: data['professorName'] ?? '',
+      isInviteEnabled: data['isInviteEnabled'] ?? false,
+      // แปลงข้อมูลจาก Firestore ให้เป็น List<String>
+      studentUids: List<String>.from(data['studentUids'] ?? []),
     );
   }
 
   Map<String, dynamic> toMap() {
     return {
       'name': name,
-      'description': description,
       'professorId': professorId,
-      'isInviteEnabled': isInviteEnabled, // เพิ่มใน map
+      'professorName': professorName,
+      'isInviteEnabled': isInviteEnabled,
+      'studentUids': studentUids,
     };
   }
 }

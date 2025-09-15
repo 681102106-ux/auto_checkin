@@ -15,7 +15,6 @@ class ManageRosterScreen extends StatefulWidget {
 class _ManageRosterScreenState extends State<ManageRosterScreen> {
   final FirestoreService _firestoreService = FirestoreService();
 
-  // เราจะใช้ StreamBuilder เพื่อให้หน้านี้อัปเดตเองเมื่อ Course มีการเปลี่ยนแปลง
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -39,8 +38,7 @@ class _ManageRosterScreenState extends State<ManageRosterScreen> {
                   course.pendingStudents,
                 ),
                 builder: (context, snapshot) {
-                  if (!snapshot.hasData)
-                    return const SizedBox.shrink(); // ไม่ต้องแสดง loading
+                  if (!snapshot.hasData) return const SizedBox.shrink();
                   final pending = snapshot.data!;
                   if (pending.isEmpty)
                     return const ListTile(title: Text('No pending requests.'));
@@ -55,11 +53,13 @@ class _ManageRosterScreenState extends State<ManageRosterScreen> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 IconButton(
+                                  // --- [จุดแก้ไข!] ---
                                   icon: const Icon(
                                     Icons.check_circle,
                                     color: Colors.green,
-                                    tooltip: 'Approve',
                                   ),
+                                  tooltip:
+                                      'Approve', // ย้าย tooltip มาไว้ตรงนี้
                                   onPressed: () {
                                     _firestoreService.removeStudentFromPending(
                                       course.id,
@@ -72,11 +72,12 @@ class _ManageRosterScreenState extends State<ManageRosterScreen> {
                                   },
                                 ),
                                 IconButton(
+                                  // --- [จุดแก้ไข!] ---
                                   icon: const Icon(
                                     Icons.cancel,
                                     color: Colors.red,
-                                    tooltip: 'Deny',
                                   ),
+                                  tooltip: 'Deny', // ย้าย tooltip มาไว้ตรงนี้
                                   onPressed: () => _firestoreService
                                       .removeStudentFromPending(
                                         course.id,
@@ -117,11 +118,12 @@ class _ManageRosterScreenState extends State<ManageRosterScreen> {
                           title: Text(student.fullName),
                           subtitle: Text(student.studentId),
                           trailing: IconButton(
+                            // --- [จุดแก้ไข!] ---
                             icon: const Icon(
                               Icons.remove_circle_outline,
                               color: Colors.redAccent,
-                              tooltip: 'Remove',
                             ),
+                            tooltip: 'Remove', // ย้าย tooltip มาไว้ตรงนี้
                             onPressed: () =>
                                 _firestoreService.removeStudentFromCourse(
                                   course.id,

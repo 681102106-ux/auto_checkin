@@ -1,10 +1,10 @@
+import 'package:auto_checkin/pages/course_detail_screen.dart'; // Import ใหม่
 import 'package:auto_checkin/pages/professor_students_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:auto_checkin/models/course.dart';
 import 'package:auto_checkin/pages/create_course_screen.dart';
-import 'package:auto_checkin/pages/manage_roster_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -78,9 +78,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
-                if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                }
                 if (!snapshot.hasData || snapshot.data!.isEmpty) {
                   return const Center(
                     child: Text(
@@ -101,18 +98,19 @@ class _HomeScreenState extends State<HomeScreen> {
                         vertical: 8,
                       ),
                       child: ListTile(
+                        leading: CircleAvatar(
+                          child: Text(course.name.substring(0, 1)),
+                        ),
                         title: Text(course.name),
                         subtitle: Text('Taught by: ${course.professorName}'),
-                        // --- นี่คือจุดที่แก้ไขครับ ---
-                        // เราได้นำปุ่ม QR Code ที่เป็นปัญหาออกไปแล้ว
-                        // และเพิ่มลูกศร > เพื่อให้ผู้ใช้รู้ว่ากดเข้าไปดูรายละเอียดต่อได้
                         trailing: const Icon(Icons.arrow_forward_ios),
                         onTap: () {
+                          // --- นี่คือจุดที่แก้ไขตามสเปกครับ ---
                           Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (context) =>
-                                  ManageRosterScreen(course: course),
+                                  CourseDetailScreen(course: course),
                             ),
                           );
                         },

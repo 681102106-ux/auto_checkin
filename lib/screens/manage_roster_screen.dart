@@ -1,14 +1,13 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../models/course.dart'; // เพิ่มการ import Course model
 
 class ManageRosterScreen extends StatefulWidget {
-  final String courseId;
-  final String courseName;
+  final Course course; // เปลี่ยนเป็นรับ Course object
 
   const ManageRosterScreen({
     Key? key,
-    required this.courseId,
-    required this.courseName,
+    required this.course, // เปลี่ยน parameter ใน constructor
   }) : super(key: key);
 
   @override
@@ -22,7 +21,7 @@ class _ManageRosterScreenState extends State<ManageRosterScreen> {
   Stream<QuerySnapshot> _getPendingStudents() {
     return _firestore
         .collection('courses')
-        .doc(widget.courseId)
+        .doc(widget.course.id) // เปลี่ยนมาใช้ widget.course.id
         .collection('roster')
         .where('status', isEqualTo: 'pending')
         .snapshots();
@@ -32,7 +31,7 @@ class _ManageRosterScreenState extends State<ManageRosterScreen> {
   Stream<QuerySnapshot> _getEnrolledStudents() {
     return _firestore
         .collection('courses')
-        .doc(widget.courseId)
+        .doc(widget.course.id) // เปลี่ยนมาใช้ widget.course.id
         .collection('roster')
         .where('status', isEqualTo: 'present')
         .snapshots();
@@ -43,7 +42,7 @@ class _ManageRosterScreenState extends State<ManageRosterScreen> {
     try {
       await _firestore
           .collection('courses')
-          .doc(widget.courseId)
+          .doc(widget.course.id) // เปลี่ยนมาใช้ widget.course.id
           .collection('roster')
           .doc(studentDocId)
           .update({'status': 'present'});
@@ -62,7 +61,7 @@ class _ManageRosterScreenState extends State<ManageRosterScreen> {
     try {
       await _firestore
           .collection('courses')
-          .doc(widget.courseId)
+          .doc(widget.course.id) // เปลี่ยนมาใช้ widget.course.id
           .collection('roster')
           .doc(studentDocId)
           .update({
@@ -82,7 +81,9 @@ class _ManageRosterScreenState extends State<ManageRosterScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Manage: ${widget.courseName}'),
+        title: Text(
+          'Manage: ${widget.course.name}',
+        ), // เปลี่ยนมาใช้ widget.course.name
         backgroundColor: Colors.deepPurple,
       ),
       body: SingleChildScrollView(

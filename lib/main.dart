@@ -6,10 +6,21 @@ import 'package:firebase_ui_localizations/firebase_ui_localizations.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
-  // ทำให้แน่ใจว่าทุกอย่างพร้อมก่อนเริ่มแอป
   WidgetsFlutterBinding.ensureInitialized();
-  // รอให้ Firebase เริ่มทำงานให้เสร็จสมบูรณ์
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // --- เพิ่มระบบตรวจสอบการเชื่อมต่อ Firebase ---
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    // ถ้าสำเร็จ ให้พิมพ์ข้อความนี้ใน Console
+    print("Firebase initialized successfully!");
+  } catch (e) {
+    // ถ้าล้มเหลว ให้พิมพ์ Error ออกมา
+    print("ERROR initializing Firebase: $e");
+  }
+  // ------------------------------------------
+
   runApp(const MyApp());
 }
 
@@ -21,7 +32,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Auto Check-in',
       theme: ThemeData(
-        primarySwatch: Colors.indigo, // ลองเปลี่ยนสีธีมให้ดูสดใสขึ้น
+        primarySwatch: Colors.indigo,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
       localizationsDelegates: const [
@@ -29,12 +40,9 @@ class MyApp extends StatelessWidget {
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
       ],
-      supportedLocales: const [
-        Locale('en', ''), // English
-        Locale('th', ''), // Thai
-      ],
+      supportedLocales: const [Locale('en', ''), Locale('th', '')],
       home: const AuthGate(),
-      debugShowCheckedModeBanner: false, // ปิดป้าย Debug เพื่อความสวยงาม
+      debugShowCheckedModeBanner: false,
     );
   }
 }

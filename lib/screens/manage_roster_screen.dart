@@ -28,70 +28,18 @@ class _ManageRosterScreenState extends State<ManageRosterScreen> {
           final course = Course.fromFirestore(courseSnapshot.data!);
 
           return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // --- ส่วนที่ 1: รายชื่อนักเรียนที่รออนุมัติ ---
               _buildSectionTitle(
                 'Pending Approval (${course.pendingStudents.length})',
               ),
-              FutureBuilder<List<StudentProfile>>(
-                future: _firestoreService.getStudentsByUids(
-                  course.pendingStudents,
-                ),
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData) return const SizedBox.shrink();
-                  final pending = snapshot.data!;
-                  if (pending.isEmpty)
-                    return const ListTile(title: Text('No pending requests.'));
-
-                  return Column(
-                    children: pending
-                        .map(
-                          (student) => ListTile(
-                            title: Text(student.fullName),
-                            subtitle: Text(student.studentId),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  // --- [จุดแก้ไข!] ---
-                                  icon: const Icon(
-                                    Icons.check_circle,
-                                    color: Colors.green,
-                                  ),
-                                  tooltip:
-                                      'Approve', // ย้าย tooltip มาไว้ตรงนี้
-                                  onPressed: () {
-                                    _firestoreService.removeStudentFromPending(
-                                      course.id,
-                                      student.uid,
-                                    );
-                                    _firestoreService.addStudentToCourse(
-                                      course.id,
-                                      student.uid,
-                                    );
-                                  },
-                                ),
-                                IconButton(
-                                  // --- [จุดแก้ไข!] ---
-                                  icon: const Icon(
-                                    Icons.cancel,
-                                    color: Colors.red,
-                                  ),
-                                  tooltip: 'Deny', // ย้าย tooltip มาไว้ตรงนี้
-                                  onPressed: () => _firestoreService
-                                      .removeStudentFromPending(
-                                        course.id,
-                                        student.uid,
-                                      ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        )
-                        .toList(),
-                  );
-                },
+              _buildStudentList(
+                course.pendingStudents,
+                isPendingList: true,
+                courseId: course.id,
               ),
+
               const Divider(thickness: 2),
 
               // --- ส่วนที่ 2: รายชื่อนักเรียนที่อนุมัติแล้ว ---
@@ -99,47 +47,88 @@ class _ManageRosterScreenState extends State<ManageRosterScreen> {
                 'Enrolled Students (${course.studentUids.length})',
               ),
               Expanded(
-                child: FutureBuilder<List<StudentProfile>>(
-                  future: _firestoreService.getStudentsByUids(
-                    course.studentUids,
-                  ),
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData)
-                      return const Center(child: CircularProgressIndicator());
-                    final enrolled = snapshot.data!;
-                    if (enrolled.isEmpty)
-                      return const Center(child: Text('No students enrolled.'));
-
-                    return ListView.builder(
-                      itemCount: enrolled.length,
-                      itemBuilder: (context, index) {
-                        final student = enrolled[index];
-                        return ListTile(
-                          title: Text(student.fullName),
-                          subtitle: Text(student.studentId),
-                          trailing: IconButton(
-                            // --- [จุดแก้ไข!] ---
-                            icon: const Icon(
-                              Icons.remove_circle_outline,
-                              color: Colors.redAccent,
-                            ),
-                            tooltip: 'Remove', // ย้าย tooltip มาไว้ตรงนี้
-                            onPressed: () =>
-                                _firestoreService.removeStudentFromCourse(
-                                  course.id,
-                                  student.uid,
-                                ),
-                          ),
-                        );
-                      },
-                    );
-                  },
+                child: _buildStudentList(
+                  course.studentUids,
+                  isPendingList: false,
+                  courseId: course.id,
                 ),
               ),
             ],
           );
         },
       ),
+    );
+  }
+
+  // --- [Widget ใหม่!] สร้าง Widget แยกสำหรับแสดงลิสต์ ---
+  Widget _buildStudentList(
+    List<String> studentUids, {
+    required bool isPendingList,
+    required String courseId,
+  }) {
+    if (studentUids.isEmpty) {
+      return ListTile(
+        title: Text(
+          isPendingList ? 'No pending requests.' : 'No students enrolled.',
+        ),
+      );
+    }
+
+    return FutureBuilder<List<StudentProfile>>(
+      future: _firestoreService.getStudentsByUids(studentUids),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData)
+          return const Center(child: CircularProgressIndicator());
+        final students = snapshot.data!;
+
+        return ListView.builder(
+          shrinkWrap: true, // ทำให้ ListView สูงเท่าที่จำเป็น
+          physics:
+              const NeverScrollableScrollPhysics(), // ปิดการเลื่อนของ ListView ย่อย
+          itemCount: students.length,
+          itemBuilder: (context, index) {
+            final student = students[index];
+            return ListTile(
+              title: Text(student.fullName),
+              subtitle: Text(student.studentId),
+              trailing: isPendingList
+                  ? _buildPendingActions(courseId, student.uid)
+                  : _buildEnrolledActions(courseId, student.uid),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Row _buildPendingActions(String courseId, String studentUid) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          icon: const Icon(Icons.check_circle, color: Colors.green),
+          tooltip: 'Approve',
+          onPressed: () {
+            _firestoreService.removeStudentFromPending(courseId, studentUid);
+            _firestoreService.addStudentToCourse(courseId, studentUid);
+          },
+        ),
+        IconButton(
+          icon: const Icon(Icons.cancel, color: Colors.red),
+          tooltip: 'Deny',
+          onPressed: () =>
+              _firestoreService.removeStudentFromPending(courseId, studentUid),
+        ),
+      ],
+    );
+  }
+
+  IconButton _buildEnrolledActions(String courseId, String studentUid) {
+    return IconButton(
+      icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent),
+      tooltip: 'Remove',
+      onPressed: () =>
+          _firestoreService.removeStudentFromCourse(courseId, studentUid),
     );
   }
 

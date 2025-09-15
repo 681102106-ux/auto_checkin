@@ -1,4 +1,4 @@
-import 'package:auto_checkin/models/attendance.dart';
+import 'package.auto_checkin/models/attendance.dart';
 import 'package:auto_checkin/models/attendance_record.dart';
 import 'package:auto_checkin/models/student_profile.dart';
 import 'package:auto_checkin/services/firestore_service.dart';
@@ -39,16 +39,24 @@ class _CheckInScreenState extends State<CheckInScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               QrImageView(
-                data: widget.course.id,
+                data: widget.course.id, // QR Code ยังคงใช้ ID ที่ไม่ซ้ำกัน
                 version: QrVersions.auto,
                 size: 200.0,
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
               const Text(
-                'Class Code',
+                'Join Code',
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
-              SelectableText(widget.course.id),
+              // --- [จุดแก้ไข!] แสดง joinCode ที่อ่านง่าย ---
+              SelectableText(
+                widget.course.joinCode,
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 2,
+                ),
+              ),
             ],
           ),
         ),
@@ -124,26 +132,20 @@ class _CheckInScreenState extends State<CheckInScreen> {
           return StreamBuilder<List<AttendanceRecord>>(
             stream: _firestoreService.getAttendanceStream(widget.course.id),
             builder: (context, attendanceSnapshot) {
-              if (attendanceSnapshot.connectionState ==
-                      ConnectionState.waiting &&
-                  !attendanceSnapshot.hasData) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
               final records = attendanceSnapshot.data ?? [];
               final attendanceMap = {for (var r in records) r.studentUid: r};
 
-              final int presentCount = records
-                  .where((r) => r.status == AttendanceStatus.present)
-                  .length;
-              final int onLeaveCount = records
-                  .where((r) => r.status == AttendanceStatus.onLeave)
-                  .length;
-              final int lateCount = records
-                  .where((r) => r.status == AttendanceStatus.late)
-                  .length;
+              int presentCount = 0;
+              int onLeaveCount = 0;
+              int lateCount = 0;
 
-              int checkedInCount = presentCount + onLeaveCount + lateCount;
+              for (var rec in records) {
+                if (rec.status == AttendanceStatus.present) presentCount++;
+                if (rec.status == AttendanceStatus.onLeave) onLeaveCount++;
+                if (rec.status == AttendanceStatus.late) lateCount++;
+              }
+
+              int checkedInCount = records.length;
               final int absentCount = roster.length - checkedInCount;
 
               return Column(

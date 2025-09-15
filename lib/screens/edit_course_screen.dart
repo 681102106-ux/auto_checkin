@@ -15,10 +15,14 @@ class EditCourseScreen extends StatefulWidget {
 class _EditCourseScreenState extends State<EditCourseScreen> {
   final _formKey = GlobalKey<FormState>();
 
+  // --- [แก้ไข!] ใช้ Controller สำหรับทุกฟิลด์ ---
   late TextEditingController _courseNameController;
   late TextEditingController _profNameController;
-  late ScoringRules _scoringRules;
-  late bool _joinCodeEnabled; // เพิ่ม State สำหรับสวิตช์
+  late TextEditingController _presentScoreController;
+  late TextEditingController _absentScoreController;
+  late TextEditingController _onLeaveScoreController;
+  late TextEditingController _lateScoreController;
+  late bool _joinCodeEnabled;
 
   @override
   void initState() {
@@ -27,7 +31,18 @@ class _EditCourseScreenState extends State<EditCourseScreen> {
     _profNameController = TextEditingController(
       text: widget.course.professorName,
     );
-    _scoringRules = ScoringRules.fromJson(widget.course.scoringRules.toJson());
+    _presentScoreController = TextEditingController(
+      text: widget.course.scoringRules.presentScore.toString(),
+    );
+    _absentScoreController = TextEditingController(
+      text: widget.course.scoringRules.absentScore.toString(),
+    );
+    _onLeaveScoreController = TextEditingController(
+      text: widget.course.scoringRules.onLeaveScore.toString(),
+    );
+    _lateScoreController = TextEditingController(
+      text: widget.course.scoringRules.lateScore.toString(),
+    );
     _joinCodeEnabled = widget.course.joinCodeEnabled;
   }
 
@@ -35,6 +50,10 @@ class _EditCourseScreenState extends State<EditCourseScreen> {
   void dispose() {
     _courseNameController.dispose();
     _profNameController.dispose();
+    _presentScoreController.dispose();
+    _absentScoreController.dispose();
+    _onLeaveScoreController.dispose();
+    _lateScoreController.dispose();
     super.dispose();
   }
 
@@ -45,11 +64,14 @@ class _EditCourseScreenState extends State<EditCourseScreen> {
         name: _courseNameController.text,
         professorName: _profNameController.text,
         professorId: widget.course.professorId,
-        scoringRules: _scoringRules,
-        joinCode: widget
-            .course
-            .joinCode, // <<<--- [จุดแก้ไข!] เพิ่ม joinCode เดิมเข้าไป
-        joinCodeEnabled: _joinCodeEnabled, // <<<--- เพิ่มค่าจากสวิตช์
+        scoringRules: ScoringRules(
+          presentScore: double.tryParse(_presentScoreController.text) ?? 1.0,
+          absentScore: double.tryParse(_absentScoreController.text) ?? 0.0,
+          onLeaveScore: double.tryParse(_onLeaveScoreController.text) ?? 0.5,
+          lateScore: double.tryParse(_lateScoreController.text) ?? 0.75,
+        ),
+        joinCode: widget.course.joinCode,
+        joinCodeEnabled: _joinCodeEnabled,
         studentUids: widget.course.studentUids,
         pendingStudents: widget.course.pendingStudents,
       );
@@ -72,17 +94,12 @@ class _EditCourseScreenState extends State<EditCourseScreen> {
             TextFormField(
               controller: _courseNameController,
               decoration: const InputDecoration(labelText: 'Course Name'),
-              validator: (value) =>
-                  value!.isEmpty ? 'Please enter a name' : null,
             ),
             TextFormField(
               controller: _profNameController,
               decoration: const InputDecoration(labelText: 'Professor Name'),
-              validator: (value) =>
-                  value!.isEmpty ? 'Please enter a name' : null,
             ),
             const Divider(height: 32),
-            // --- เพิ่มสวิตช์เปิด/ปิดรหัสเชิญ ---
             SwitchListTile(
               title: const Text('Enable Join Code'),
               value: _joinCodeEnabled,
@@ -98,32 +115,24 @@ class _EditCourseScreenState extends State<EditCourseScreen> {
               style: Theme.of(context).textTheme.titleLarge,
             ),
             TextFormField(
-              initialValue: _scoringRules.presentScore.toString(),
+              controller: _presentScoreController,
               decoration: const InputDecoration(labelText: 'Present Score'),
               keyboardType: TextInputType.number,
-              onChanged: (value) =>
-                  _scoringRules.presentScore = double.tryParse(value) ?? 1.0,
             ),
             TextFormField(
-              initialValue: _scoringRules.absentScore.toString(),
+              controller: _absentScoreController,
               decoration: const InputDecoration(labelText: 'Absent Score'),
               keyboardType: TextInputType.number,
-              onChanged: (value) =>
-                  _scoringRules.absentScore = double.tryParse(value) ?? 0.0,
             ),
             TextFormField(
-              initialValue: _scoringRules.onLeaveScore.toString(),
+              controller: _onLeaveScoreController,
               decoration: const InputDecoration(labelText: 'On Leave Score'),
               keyboardType: TextInputType.number,
-              onChanged: (value) =>
-                  _scoringRules.onLeaveScore = double.tryParse(value) ?? 0.5,
             ),
             TextFormField(
-              initialValue: _scoringRules.lateScore.toString(),
+              controller: _lateScoreController,
               decoration: const InputDecoration(labelText: 'Late Score'),
               keyboardType: TextInputType.number,
-              onChanged: (value) =>
-                  _scoringRules.lateScore = double.tryParse(value) ?? 0.75,
             ),
             const SizedBox(height: 32),
             ElevatedButton(

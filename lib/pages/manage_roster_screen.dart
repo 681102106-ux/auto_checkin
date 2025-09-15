@@ -16,7 +16,7 @@ class _ManageRosterScreenState extends State<ManageRosterScreen> {
 
   Future<void> _approveStudent(String studentDocId) async {
     try {
-      // 1. อัปเดตสถานะใน roster ของคลาส
+      // 1. อัปเดตสถานะใน roster ของคลาส (เหมือนเดิม)
       await _firestore
           .collection('courses')
           .doc(widget.course.id)
@@ -24,7 +24,7 @@ class _ManageRosterScreenState extends State<ManageRosterScreen> {
           .doc(studentDocId)
           .update({'status': 'present'});
 
-      // 2. เพิ่มนักเรียนเข้าไปในทะเบียนของคอร์สหลัก
+      // 2. (เพิ่มใหม่) เพิ่ม UID ของนักเรียนเข้าไปในชั้นหนังสือของคอร์สหลัก
       await _firestore.collection('courses').doc(widget.course.id).update({
         'studentUids': FieldValue.arrayUnion([studentDocId]),
       });
@@ -46,7 +46,7 @@ class _ManageRosterScreenState extends State<ManageRosterScreen> {
           .doc(widget.course.id)
           .collection('roster')
           .doc(studentDocId)
-          .update({'status': 'denied'}); // หรือจะใช้ .delete() ก็ได้
+          .update({'status': 'denied'});
     } catch (e) {
       // Handle error
     }

@@ -6,8 +6,7 @@ class FirestoreService {
 
   /// Get a stream of courses a student is enrolled in
   Stream<List<Course>> getEnrolledCoursesStream(String studentUid) {
-    // นี่คือ "เมนู" ใหม่ที่เราสร้างขึ้นครับ
-    // มันจะไปหาคอร์สทั้งหมดที่มี UID ของนักเรียนคนนี้อยู่ในรายชื่อ
+    // นี่คือ "เมนู" ใหม่ที่เราสร้างขึ้นตามสเปกครับ
     return _firestore
         .collection('courses')
         .where('studentUids', arrayContains: studentUid)

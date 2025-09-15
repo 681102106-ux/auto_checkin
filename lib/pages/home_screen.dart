@@ -1,6 +1,6 @@
 import 'package:auto_checkin/models/course.dart';
 import 'package:auto_checkin/pages/create_course_screen.dart';
-import 'package.auto_checkin/pages/manage_roster_screen.dart';
+import 'package:auto_checkin/pages/course_detail_screen.dart';
 import 'package:auto_checkin/services/firestore_service.dart'; // Import service
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -106,7 +106,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       context,
                       MaterialPageRoute(
                         builder: (context) =>
-                            ManageRosterScreen(course: course),
+                            CourseDetailScreen(course: course),
                       ),
                     );
                   },

@@ -1,8 +1,12 @@
 import 'package:auto_checkin/pages/home_screen.dart';
 import 'package:auto_checkin/pages/student_screen.dart';
-import 'package:auto_checkin/services/firestore_service.dart'; // Import service
+import 'package:auto_checkin/services/firestore_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
+// --- นี่คือบรรทัดที่แก้ไขครับ ---
+// เราจะซ่อนคลาสที่ชื่อซ้ำกันจาก package นี้ไป
 import 'package:firebase_auth/firebase_auth.dart' hide EmailAuthProvider;
+
 import 'package:firebase_ui_auth/firebase_ui_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -14,23 +18,19 @@ class AuthGate extends StatelessWidget {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
-        // ถ้ายังไม่มี User login อยู่
         if (!snapshot.hasData) {
+          // ตอนนี้ Dart จะไม่สับสนแล้วว่า EmailAuthProvider() มาจากไหน
           return SignInScreen(providers: [EmailAuthProvider()]);
         }
 
-        // --- Logic ใหม่: เมื่อ User login แล้ว ---
         final user = snapshot.data!;
         final firestoreService = FirestoreService();
 
-        // เราจะใช้ FutureBuilder เพื่อรอผลการตรวจสอบและดึง Role
         return FutureBuilder<DocumentSnapshot>(
-          // 1. สร้างโปรไฟล์ (ถ้ายังไม่มี) และดึงข้อมูลกลับมา
           future: firestoreService.createUserProfileIfNeeded(user).then((_) {
             return firestoreService.getUserProfile(user.uid);
           }),
           builder: (context, userProfileSnapshot) {
-            // ขณะกำลังโหลดข้อมูล...
             if (userProfileSnapshot.connectionState ==
                 ConnectionState.waiting) {
               return const Scaffold(
@@ -38,24 +38,37 @@ class AuthGate extends StatelessWidget {
               );
             }
 
-            // ถ้าหาโปรไฟล์ไม่เจอ หรือมี Error
-            if (!userProfileSnapshot.hasData ||
-                !userProfileSnapshot.data!.exists) {
-              return const Scaffold(
-                body: Center(child: Text('Could not load user profile.')),
+            // --- นี่คือส่วนที่อัปเกรดครับ ---
+            // เพิ่มการดักจับ Error เพื่อให้เรารู้ว่าเกิดอะไรขึ้น
+            if (userProfileSnapshot.hasError) {
+              // สำหรับนักพัฒนา: แสดง error ใน console เพื่อให้แก้บัคง่ายขึ้น
+              print("Error loading user profile: ${userProfileSnapshot.error}");
+              return Scaffold(
+                body: Center(
+                  child: Text(
+                    "An error occurred: ${userProfileSnapshot.error}",
+                  ),
+                ),
               );
             }
 
-            // 2. อ่าน Role จากข้อมูลที่ได้มา
+            if (!userProfileSnapshot.hasData ||
+                !userProfileSnapshot.data!.exists) {
+              return const Scaffold(
+                body: Center(
+                  child: Text('Could not load user profile. Please try again.'),
+                ),
+              );
+            }
+
             final data =
                 userProfileSnapshot.data!.data() as Map<String, dynamic>;
             final role = data['role'];
 
-            // 3. แยกเส้นทางตาม Role
             if (role == 'professor') {
-              return const HomeScreen(); // ไปหน้าอาจารย์
+              return const HomeScreen();
             } else {
-              return const StudentScreen(); // ไปหน้านักเรียน
+              return const StudentScreen();
             }
           },
         );

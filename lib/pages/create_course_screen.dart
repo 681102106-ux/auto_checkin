@@ -1,3 +1,4 @@
+import 'package:auto_checkin/models/scoring_rules.dart'; // Import โมเดลใหม่
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -34,13 +35,22 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
       if (user == null) return;
 
       try {
+        // กำหนดค่าคะแนนเริ่มต้นตามสเปก
+        final defaultScoringRules = ScoringRules(
+          presentScore: 1,
+          lateScore: 0.75,
+          onLeaveScore: 0.5,
+          absentScore: 0,
+        );
+
         await _firestore.collection('courses').add({
           'name': _courseNameController.text,
           'professorId': user.uid,
           'professorName': user.displayName ?? user.email,
           'isInviteEnabled': _isInviteEnabled,
-          'studentUids': [], // <-- เพิ่ม field นี้ตอนสร้างคอร์สใหม่
           'createdAt': FieldValue.serverTimestamp(),
+          'scoringRules': defaultScoringRules
+              .toMap(), // เพิ่มกฎการให้คะแนนเข้าไป
         });
 
         Navigator.of(context).pop();
@@ -60,6 +70,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // ... UI เดิม ...
     return Scaffold(
       appBar: AppBar(title: const Text('Create New Course')),
       body: Padding(

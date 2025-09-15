@@ -1,6 +1,7 @@
-import 'package:auto_checkin/models/course.dart';
-import 'package:auto_checkin/services/firestore_service.dart';
+import 'package:auto_checkin/pages/scan_qr_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart'; // Import for kDebugMode
 import 'package:flutter/material.dart';
 
 class StudentScreen extends StatefulWidget {
@@ -11,102 +12,156 @@ class StudentScreen extends StatefulWidget {
 }
 
 class _StudentScreenState extends State<StudentScreen> {
-  final FirestoreService _firestoreService = FirestoreService();
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final TextEditingController _debugQrController = TextEditingController();
+
+  // ฟังก์ชันสำหรับแสดง Dialog ยืนยันการเช็คชื่อ
+  Future<void> _showCheckInDialog(String courseId) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    // ดึงข้อมูลคอร์สเพื่อแสดงชื่อ
+    final courseDoc = await _firestore
+        .collection('courses')
+        .doc(courseId)
+        .get();
+    if (!courseDoc.exists) {
+      _showError("Course not found.");
+      return;
+    }
+    final courseName = courseDoc.data()?['name'] ?? 'Unknown Course';
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Confirm Check-in'),
+          content: Text('Do you want to check in to "$courseName"?'),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            TextButton(
+              child: const Text('Confirm'),
+              onPressed: () {
+                _performCheckIn(courseId, user);
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // ฟังก์ชันสำหรับบันทึกข้อมูลการเช็คชื่อ
+  Future<void> _performCheckIn(String courseId, User user) async {
+    try {
+      await _firestore
+          .collection('courses')
+          .doc(courseId)
+          .collection('roster')
+          .doc(user.uid)
+          .set({
+            'student_name': user.displayName ?? user.email,
+            'student_id':
+                user.uid, // You can use another student ID if available
+            'status': 'pending', // สถานะเริ่มต้นคือรอการอนุมัติ
+            'timestamp': FieldValue.serverTimestamp(),
+          });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Check-in request sent!')));
+    } catch (e) {
+      _showError("Failed to send check-in request: $e");
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
+  }
+
+  @override
+  void dispose() {
+    _debugQrController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final user = _auth.currentUser;
-    // หาก user เป็น null ให้แสดงหน้าจอว่างๆ ป้องกัน error
-    if (user == null) {
-      return const Scaffold(body: Center(child: Text("Not logged in.")));
-    }
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Dashboard'),
+        title: const Text('Student Dashboard'),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () => FirebaseAuth.instance.signOut(),
-            tooltip: 'Logout',
+            onPressed: () => _auth.signOut(),
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      body: Center(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // ส่วนหัวต้อนรับ
             Text(
-              'Welcome, ${user.displayName ?? user.email}!',
-              style: Theme.of(context).textTheme.headlineSmall,
+              'Welcome, ${user?.displayName ?? user?.email ?? 'Student'}!',
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 20),
-
-            // หมายเหตุ: สามารถวางปุ่ม Action ต่างๆ (เช่น Join Class) ไว้ตรงนี้ได้
-            const Divider(),
-            const SizedBox(height: 10),
-
-            // ส่วนหัวของ "ชั้นหนังสือ"
-            Text(
-              "My Enrolled Courses",
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 10),
-
-            // "ชั้นหนังสือ" ที่ดึงข้อมูลแบบ Real-time
-            Expanded(
-              child: StreamBuilder<List<Course>>(
-                stream: _firestoreService.getEnrolledCoursesStream(user.uid),
-                builder: (context, snapshot) {
-                  // สถานะ: กำลังโหลด
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  // สถานะ: มี Error
-                  if (snapshot.hasError) {
-                    return Center(child: Text('Error: ${snapshot.error}'));
-                  }
-                  // สถานะ: ไม่มีข้อมูล (ยังไม่เคยลงทะเบียน)
-                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return const Center(
-                      child: Text(
-                        "You haven't enrolled in any courses yet.\nJoin a class by scanning a QR code.",
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 16, color: Colors.grey),
-                      ),
-                    );
-                  }
-
-                  // สถานะ: มีข้อมูล แสดงผลรายชื่อวิชา
-                  final courses = snapshot.data!;
-
-                  return ListView.builder(
-                    itemCount: courses.length,
-                    itemBuilder: (context, index) {
-                      final course = courses[index];
-                      return Card(
-                        margin: const EdgeInsets.symmetric(vertical: 8.0),
-                        elevation: 2,
-                        child: ListTile(
-                          leading: CircleAvatar(
-                            child: const Icon(Icons.class_outlined),
-                          ),
-                          title: Text(
-                            course.name,
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          subtitle: Text(course.professorName),
-                          // สามารถเพิ่ม onTap เพื่อไปยังหน้ารายละเอียดของคลาสได้ในอนาคต
-                        ),
-                      );
-                    },
-                  );
-                },
+            const SizedBox(height: 40),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.qr_code_scanner),
+              label: const Text('Scan QR to Check-in'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 30,
+                  vertical: 15,
+                ),
+                textStyle: const TextStyle(fontSize: 18),
               ),
+              onPressed: () async {
+                // รอรับผลลัพธ์จากหน้าสแกน
+                final scannedCode = await Navigator.push<String>(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ScanQRScreen()),
+                );
+                if (scannedCode != null && scannedCode.isNotEmpty) {
+                  _showCheckInDialog(scannedCode);
+                }
+              },
             ),
+            const SizedBox(height: 40),
+            // --- เครื่องมือสำหรับนักพัฒนา ---
+            if (kDebugMode)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                child: Column(
+                  children: [
+                    const Text('--- DEBUGGER ---'),
+                    TextField(
+                      controller: _debugQrController,
+                      decoration: const InputDecoration(
+                        labelText: 'Enter Course ID to Simulate Scan',
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    ElevatedButton(
+                      onPressed: () {
+                        final simulatedCode = _debugQrController.text;
+                        if (simulatedCode.isNotEmpty) {
+                          _showCheckInDialog(simulatedCode);
+                        }
+                      },
+                      child: const Text('Simulate Scan'),
+                    ),
+                  ],
+                ),
+              ),
           ],
         ),
       ),

@@ -1,138 +1,120 @@
-import 'package:auto_checkin/pages/course_detail_screen.dart'; // Import ใหม่
-import 'package:auto_checkin/pages/professor_students_screen.dart';
-import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:auto_checkin/models/course.dart';
 import 'package:auto_checkin/pages/create_course_screen.dart';
+import 'package.auto_checkin/pages/manage_roster_screen.dart';
+import 'package:auto_checkin/services/firestore_service.dart'; // Import service
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
 
   @override
-  _HomeScreenState createState() => _HomeScreenState();
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirestoreService _firestoreService =
+      FirestoreService(); // สร้าง instance ของ service
 
-  Stream<List<Course>> _getCoursesStream() {
-    final user = _auth.currentUser;
-    if (user == null) {
-      return Stream.value([]);
-    }
-    return _firestore
-        .collection('courses')
-        .where('professorId', isEqualTo: user.uid)
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map((snapshot) {
-          return snapshot.docs.map((doc) => Course.fromFirestore(doc)).toList();
-        });
+  void _showDeleteConfirmationDialog(Course course) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Delete Course'),
+          content: Text(
+            'Are you sure you want to delete "${course.name}"? This action cannot be undone.',
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text('Delete'),
+              onPressed: () {
+                _firestoreService.deleteCourse(course.id);
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('"${course.name}" has been deleted.')),
+                );
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final user = _auth.currentUser;
+    if (user == null) {
+      return const Scaffold(body: Center(child: Text("User not found.")));
+    }
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Professor Dashboard'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.people),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const ProfessorStudentsScreen(),
-                ),
-              );
-            },
-            tooltip: 'My Students',
-          ),
-          IconButton(
             icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await _auth.signOut();
-            },
-            tooltip: 'Logout',
+            onPressed: () => _auth.signOut(),
           ),
         ],
       ),
-      body: Column(
-        children: [
-          if (user != null)
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text(
-                'Welcome, ${user.displayName ?? user.email}',
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-            ),
-          Expanded(
-            child: StreamBuilder<List<Course>>(
-              stream: _getCoursesStream(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasError) {
-                  return Center(child: Text("Error: ${snapshot.error}"));
-                }
-                if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Center(
-                    child: Text(
-                      'No courses found. Create one to get started!',
-                      style: TextStyle(fontSize: 16),
-                    ),
-                  );
-                }
-
-                final courses = snapshot.data!;
-                return ListView.builder(
-                  itemCount: courses.length,
-                  itemBuilder: (context, index) {
-                    final course = courses[index];
-                    return Card(
-                      margin: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
+      body: StreamBuilder<List<Course>>(
+        stream: _firestoreService.getCoursesStream(
+          user.uid,
+        ), // ใช้ service ในการดึงข้อมูล
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Center(child: Text('No courses found.'));
+          }
+          final courses = snapshot.data!;
+          return ListView.builder(
+            itemCount: courses.length,
+            itemBuilder: (context, index) {
+              final course = courses[index];
+              return Card(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: ListTile(
+                  title: Text(course.name),
+                  subtitle: Text(course.professorName),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        onPressed: () => _showDeleteConfirmationDialog(course),
+                        tooltip: 'Delete Course',
                       ),
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          child: Text(
-                            course.name.isNotEmpty
-                                ? course.name.substring(0, 1)
-                                : '?',
-                          ),
-                          backgroundColor: Colors.blue.shade100,
-                        ),
-                        title: Text(
-                          course.name,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Text('Taught by: ${course.professorName}'),
-                        trailing: const Icon(Icons.arrow_forward_ios),
-                        onTap: () {
-                          // --- นี่คือจุดที่แก้ไขตามสเปกครับ ---
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  CourseDetailScreen(course: course),
-                            ),
-                          );
-                        },
+                    ],
+                  ),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            ManageRosterScreen(course: course),
                       ),
                     );
                   },
-                );
-              },
-            ),
-          ),
-        ],
+                ),
+              );
+            },
+          );
+        },
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
@@ -142,7 +124,6 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         },
         child: const Icon(Icons.add),
-        tooltip: 'Create Course',
       ),
     );
   }

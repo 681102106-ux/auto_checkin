@@ -6,6 +6,23 @@ import '../models/checkin_session.dart';
 class FirestoreService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  // ย้ายฟังก์ชันดึงข้อมูลคอร์สมาไว้ที่นี่
+  Stream<List<Course>> getCoursesStream(String professorId) {
+    return _firestore
+        .collection('courses')
+        .where('professorId', isEqualTo: professorId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs.map((doc) => Course.fromFirestore(doc)).toList();
+        });
+  }
+
+  // เพิ่ม "เมนู" สำหรับลบคลาส
+  Future<void> deleteCourse(String courseId) {
+    return _firestore.collection('courses').doc(courseId).delete();
+  }
+
   // --- ฟังก์ชันเดิม (ยังคงไว้) ---
   Stream<List<Course>> getEnrolledCoursesStream(String studentUid) {
     return _firestore

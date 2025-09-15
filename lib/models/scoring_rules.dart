@@ -1,33 +1,24 @@
 class ScoringRules {
-  double presentScore;
-  double absentScore;
-  double onLeaveScore;
-  double lateScore;
+  final double presentScore;
+  final double lateScore;
+  final double onLeaveScore;
+  final double absentScore;
 
+  // แก้ไข Constructor ให้รับค่าเริ่มต้นได้
   ScoringRules({
     this.presentScore = 1.0,
+    this.lateScore = 0.5,
+    this.onLeaveScore = 0.25,
     this.absentScore = 0.0,
-    this.onLeaveScore = 0.5,
-    this.lateScore = 0.75,
   });
 
-  // --- [โค้ดใหม่] เครื่องมือแปลง Object เป็น Map ---
-  Map<String, dynamic> toJson() {
+  // ฟังก์ชันสำหรับแปลงข้อมูลเป็น Map เพื่อบันทึกลง Firestore
+  Map<String, dynamic> toMap() {
     return {
       'presentScore': presentScore,
-      'absentScore': absentScore,
-      'onLeaveScore': onLeaveScore,
       'lateScore': lateScore,
+      'onLeaveScore': onLeaveScore,
+      'absentScore': absentScore,
     };
-  }
-
-  // --- [โค้ดใหม่] เครื่องมือแปลง Map กลับเป็น Object ---
-  factory ScoringRules.fromJson(Map<String, dynamic> json) {
-    return ScoringRules(
-      presentScore: json['presentScore'] ?? 1.0,
-      absentScore: json['absentScore'] ?? 0.0,
-      onLeaveScore: json['onLeaveScore'] ?? 0.5,
-      lateScore: json['lateScore'] ?? 0.75,
-    );
   }
 }

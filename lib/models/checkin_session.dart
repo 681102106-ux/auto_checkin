@@ -22,8 +22,4 @@ class CheckinSession {
       isActive: data['isActive'] ?? false,
     );
   }
-
-  Map<String, dynamic> toJson() {
-    return {'courseId': courseId, 'startTime': startTime, 'isActive': isActive};
-  }
 }

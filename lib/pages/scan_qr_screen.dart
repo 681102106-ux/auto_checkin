@@ -17,7 +17,7 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
   bool _isProcessing = false;
 
   void _handleQrCode(BuildContext context, String rawValue) async {
-    if (_isProcessing) return; // ป้องกันการสแกนซ้ำซ้อน
+    if (_isProcessing) return; // Prevent multiple submissions
 
     setState(() {
       _isProcessing = true;
@@ -30,7 +30,7 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
     }
 
     try {
-      // ถอดรหัส JSON จาก QR Code
+      // Decode JSON from the QR code
       final data = jsonDecode(rawValue) as Map<String, dynamic>;
       final courseId = data['courseId'] as String?;
       final sessionId = data['sessionId'] as String?;
@@ -39,33 +39,29 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
         throw const FormatException("Invalid QR code data.");
       }
 
-      // ส่งข้อมูลไปบันทึกการเช็คชื่อ
+      // Create the attendance record
       await _firestoreService.createAttendanceRecord(
         courseId: courseId,
         sessionId: sessionId,
         student: user,
       );
 
-      // แสดงผลว่าสำเร็จ
-      Navigator.of(context).pop(); // ปิดหน้าสแกน
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Check-in Successful!"),
-          backgroundColor: Colors.green,
-        ),
-      );
+      // Show success message and close the scanner
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Check-in Successful!"),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
     } on FormatException catch (_) {
       _showErrorDialog(
         "Invalid QR Code format. Please scan a valid check-in QR code.",
       );
     } catch (e) {
       _showErrorDialog("An error occurred: $e");
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isProcessing = false;
-        });
-      }
     }
   }
 
@@ -82,9 +78,11 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
             onPressed: () {
               Navigator.of(ctx).pop();
               // Reset state to allow scanning again
-              setState(() {
-                _isProcessing = false;
-              });
+              if (mounted) {
+                setState(() {
+                  _isProcessing = false;
+                });
+              }
             },
           ),
         ],
@@ -95,18 +93,33 @@ class _ScanQRScreenState extends State<ScanQRScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Scan QR Code')),
+      appBar: AppBar(title: const Text('Scan to Check-in')),
       body: Stack(
+        alignment: Alignment.center,
         children: [
           MobileScanner(
             onDetect: (capture) {
+              if (_isProcessing) return;
               final List<Barcode> barcodes = capture.barcodes;
               if (barcodes.isNotEmpty && barcodes.first.rawValue != null) {
                 _handleQrCode(context, barcodes.first.rawValue!);
               }
             },
           ),
-          if (_isProcessing) const Center(child: CircularProgressIndicator()),
+          // UI Overlay
+          Container(
+            width: 250,
+            height: 250,
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.red, width: 4),
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          if (_isProcessing)
+            Container(
+              color: Colors.black.withOpacity(0.5),
+              child: const Center(child: CircularProgressIndicator()),
+            ),
         ],
       ),
     );

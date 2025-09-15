@@ -78,6 +78,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
+                if (snapshot.hasError) {
+                  return Center(child: Text("Error: ${snapshot.error}"));
+                }
                 if (!snapshot.hasData || snapshot.data!.isEmpty) {
                   return const Center(
                     child: Text(
@@ -99,9 +102,17 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       child: ListTile(
                         leading: CircleAvatar(
-                          child: Text(course.name.substring(0, 1)),
+                          child: Text(
+                            course.name.isNotEmpty
+                                ? course.name.substring(0, 1)
+                                : '?',
+                          ),
+                          backgroundColor: Colors.blue.shade100,
                         ),
-                        title: Text(course.name),
+                        title: Text(
+                          course.name,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
                         subtitle: Text('Taught by: ${course.professorName}'),
                         trailing: const Icon(Icons.arrow_forward_ios),
                         onTap: () {

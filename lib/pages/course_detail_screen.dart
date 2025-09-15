@@ -23,20 +23,27 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
       final sessionId = await _firestoreService.startNewCheckinSession(
         widget.course.id,
       );
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) =>
-              CheckInScreen(course: widget.course, sessionId: sessionId),
-        ),
-      );
+      // Navigate to the live check-in screen for the new session
+      _navigateToSession(sessionId);
     } catch (e) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text("Error starting session: $e")));
     } finally {
-      setState(() => _isStartingSession = false);
+      if (mounted) {
+        setState(() => _isStartingSession = false);
+      }
     }
+  }
+
+  void _navigateToSession(String sessionId) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            CheckInScreen(course: widget.course, sessionId: sessionId),
+      ),
+    );
   }
 
   @override
@@ -59,9 +66,9 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                     ),
                   ),
           ),
-          const Divider(),
+          const Divider(thickness: 1),
           const Padding(
-            padding: EdgeInsets.all(12.0),
+            padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: Text(
               "Past Sessions",
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -76,8 +83,11 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
+                if (snapshot.hasError) {
+                  return Center(child: Text("Error: ${snapshot.error}"));
+                }
                 if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Center(child: Text("No sessions found."));
+                  return const Center(child: Text("No sessions found yet."));
                 }
                 final sessions = snapshot.data!;
                 return ListView.builder(
@@ -93,10 +103,13 @@ class _CourseDetailScreenState extends State<CourseDetailScreen> {
                         vertical: 6,
                       ),
                       child: ListTile(
-                        leading: const Icon(Icons.history),
+                        leading: const Icon(
+                          Icons.history_toggle_off,
+                          color: Colors.blue,
+                        ),
                         title: Text("Session on $formattedDate"),
-                        subtitle: Text("Session ID: ${session.id}"),
-                        // onTap: () { /* ในอนาคตสามารถกดเพื่อดูรายละเอียดของ Session นั้นๆ ได้ */ },
+                        trailing: const Icon(Icons.arrow_forward_ios),
+                        onTap: () => _navigateToSession(session.id),
                       ),
                     );
                   },

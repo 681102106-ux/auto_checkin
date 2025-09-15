@@ -77,6 +77,7 @@ class FirestoreService {
         .collection('sessions')
         .doc(sessionId)
         .collection('attendance')
+        .orderBy('timestamp', descending: true)
         .snapshots();
   }
 
@@ -86,18 +87,20 @@ class FirestoreService {
     required String sessionId,
     required User student,
   }) async {
-    await _firestore
+    final attendanceRef = _firestore
         .collection('courses')
         .doc(courseId)
         .collection('sessions')
         .doc(sessionId)
         .collection('attendance')
-        .doc(student.uid)
-        .set({
-          'student_name': student.displayName ?? student.email,
-          'student_uid': student.uid,
-          'timestamp': FieldValue.serverTimestamp(),
-          'status': 'present', // บันทึกเป็นมาเรียนทันที
-        });
+        .doc(student.uid);
+
+    // ใช้ set แทน add เพื่อป้องกันการเช็คชื่อซ้ำของคนเดิมในคาบเดิม
+    await attendanceRef.set({
+      'student_name': student.displayName ?? student.email,
+      'student_uid': student.uid,
+      'timestamp': FieldValue.serverTimestamp(),
+      'status': 'present',
+    });
   }
 }

@@ -34,25 +34,31 @@ class _CheckInScreenState extends State<CheckInScreen> {
           // ส่วนแสดง QR Code
           Container(
             padding: const EdgeInsets.all(24),
-            color: Colors.blue.shade50,
+            color: Colors.grey.shade100,
             child: Center(
               child: Column(
                 children: [
-                  QrImageView(
-                    data: qrData,
-                    version: QrVersions.auto,
-                    size: 220.0,
+                  Card(
+                    elevation: 4,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: QrImageView(
+                        data: qrData,
+                        version: QrVersions.auto,
+                        size: 200.0,
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 16),
                   const Text(
-                    "Students: Scan to check-in!",
+                    "Students: Scan this code to check-in!",
                     style: TextStyle(fontSize: 16),
                   ),
                 ],
               ),
             ),
           ),
-          const Divider(),
+          const Divider(thickness: 1),
           // ส่วนแสดงผล Live
           Padding(
             padding: const EdgeInsets.all(12.0),
@@ -75,6 +81,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
                         "$count Students",
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
+                      avatar: const Icon(Icons.people),
                       backgroundColor: Colors.green.shade100,
                     );
                   },
@@ -92,6 +99,9 @@ class _CheckInScreenState extends State<CheckInScreen> {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
+                if (snapshot.hasError) {
+                  return Center(child: Text("Error: ${snapshot.error}"));
+                }
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                   return const Center(
                     child: Text("Waiting for students to check in..."),
@@ -104,11 +114,15 @@ class _CheckInScreenState extends State<CheckInScreen> {
                     final doc = attendanceDocs[index];
                     final data = doc.data() as Map<String, dynamic>;
                     return ListTile(
-                      leading: const CircleAvatar(child: Icon(Icons.person)),
+                      leading: CircleAvatar(
+                        child: const Icon(Icons.person_outline),
+                        backgroundColor: Colors.grey.shade200,
+                      ),
                       title: Text(data['student_name'] ?? 'Unknown Student'),
                       trailing: const Icon(
                         Icons.check_circle,
                         color: Colors.green,
+                        size: 28,
                       ),
                     );
                   },

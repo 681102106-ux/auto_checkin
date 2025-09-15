@@ -4,7 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:auto_checkin/models/course.dart';
 import 'package:auto_checkin/pages/create_course_screen.dart';
-import 'package:auto_checkin/pages/generate_qr_screen.dart';
 import 'package:auto_checkin/pages/manage_roster_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -103,31 +102,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       child: ListTile(
                         title: Text(course.name),
-                        // --- นี่คือจุดที่แก้ไขครับ ---
-                        // เปลี่ยนจาก course.description ที่ไม่มีอยู่
-                        // มาเป็น course.professorName ที่มีข้อมูลอยู่แล้ว
                         subtitle: Text('Taught by: ${course.professorName}'),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (course.isInviteEnabled)
-                              IconButton(
-                                icon: const Icon(Icons.qr_code_2),
-                                onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => GenerateQRScreen(
-                                        courseId: course.id,
-                                        courseName: course.name,
-                                      ),
-                                    ),
-                                  );
-                                },
-                                tooltip: 'Generate QR',
-                              ),
-                          ],
-                        ),
+                        // --- นี่คือจุดที่แก้ไขครับ ---
+                        // เราได้นำปุ่ม QR Code ที่เป็นปัญหาออกไปแล้ว
+                        // และเพิ่มลูกศร > เพื่อให้ผู้ใช้รู้ว่ากดเข้าไปดูรายละเอียดต่อได้
+                        trailing: const Icon(Icons.arrow_forward_ios),
                         onTap: () {
                           Navigator.push(
                             context,

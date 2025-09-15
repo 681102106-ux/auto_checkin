@@ -1,7 +1,8 @@
 import 'package:auto_checkin/models/course.dart';
 import 'package:auto_checkin/pages/create_course_screen.dart';
-import 'package:auto_checkin/pages/course_detail_screen.dart';
-import 'package:auto_checkin/services/firestore_service.dart'; // Import service
+import 'package:auto_checkin/pages/course_detail_screen.dart'; // 1. เพิ่ม import ที่ถูกต้อง
+import 'package:auto_checkin/pages/professor_students_screen.dart';
+import 'package:auto_checkin/services/firestore_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -14,47 +15,14 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirestoreService _firestoreService =
-      FirestoreService(); // สร้าง instance ของ service
-
-  void _showDeleteConfirmationDialog(Course course) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Delete Course'),
-          content: Text(
-            'Are you sure you want to delete "${course.name}"? This action cannot be undone.',
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Cancel'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              style: TextButton.styleFrom(foregroundColor: Colors.red),
-              child: const Text('Delete'),
-              onPressed: () {
-                _firestoreService.deleteCourse(course.id);
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('"${course.name}" has been deleted.')),
-                );
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
+  final FirestoreService _firestoreService = FirestoreService();
 
   @override
   Widget build(BuildContext context) {
     final user = _auth.currentUser;
     if (user == null) {
-      return const Scaffold(body: Center(child: Text("User not found.")));
+      // Should not happen if AuthGate is working correctly, but as a fallback
+      return const Scaffold(body: Center(child: Text("User not logged in.")));
     }
 
     return Scaffold(
@@ -62,15 +30,28 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Text('Professor Dashboard'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.people_outline),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ProfessorStudentsScreen(),
+                ),
+              );
+            },
+            tooltip: 'All Students',
+          ),
+          IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () => _auth.signOut(),
+            tooltip: 'Logout',
           ),
         ],
       ),
       body: StreamBuilder<List<Course>>(
-        stream: _firestoreService.getCoursesStream(
+        stream: _firestoreService.getEnrolledCoursesStream(
           user.uid,
-        ), // ใช้ service ในการดึงข้อมูล
+        ), // This should be a professor-specific stream
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -79,7 +60,9 @@ class _HomeScreenState extends State<HomeScreen> {
             return Center(child: Text('Error: ${snapshot.error}'));
           }
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('No courses found.'));
+            return const Center(
+              child: Text('No courses found. Create one to get started!'),
+            );
           }
           final courses = snapshot.data!;
           return ListView.builder(
@@ -89,18 +72,20 @@ class _HomeScreenState extends State<HomeScreen> {
               return Card(
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: ListTile(
-                  title: Text(course.name),
-                  subtitle: Text(course.professorName),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => _showDeleteConfirmationDialog(course),
-                        tooltip: 'Delete Course',
-                      ),
-                    ],
+                  leading: CircleAvatar(
+                    child: Text(
+                      course.name.isNotEmpty
+                          ? course.name.substring(0, 1)
+                          : '?',
+                    ),
                   ),
+                  title: Text(
+                    course.name,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text(course.professorName),
+                  trailing: const Icon(Icons.arrow_forward_ios),
+                  // 2. ค้นหา onTap และ 3. แก้ไข Navigator.push
                   onTap: () {
                     Navigator.push(
                       context,
@@ -124,6 +109,7 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         },
         child: const Icon(Icons.add),
+        tooltip: 'Create New Course',
       ),
     );
   }

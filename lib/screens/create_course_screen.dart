@@ -17,9 +17,8 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
   final _courseNameController = TextEditingController();
   final _profNameController = TextEditingController();
   final _scoringRules = ScoringRules();
-  bool _joinCodeEnabled = true; // <<<--- [ใหม่!] State สำหรับสวิตช์
+  bool _joinCodeEnabled = true;
 
-  // ... (dispose method และ _generateJoinCode เหมือนเดิม) ...
   @override
   void dispose() {
     _courseNameController.dispose();
@@ -28,8 +27,7 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
   }
 
   String _generateJoinCode() {
-    const chars =
-        'ABCDEFGHIJKLMNPQRSTUVWXYZ123456789'; // เอา O กับ 0 ออกกันสับสน
+    const chars = 'ABCDEFGHIJKLMNPQRSTUVWXYZ123456789';
     final random = Random();
     return String.fromCharCodes(
       Iterable.generate(
@@ -40,7 +38,8 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
   }
 
   void _saveCourse() {
-    if (_formKey.currentState!.validate()) {
+    // ใช้ validate() เพื่อตรวจสอบฟอร์มก่อน
+    if (_formKey.currentState?.validate() ?? false) {
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) return;
 
@@ -51,11 +50,13 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
         scoringRules: _scoringRules,
         professorId: currentUser.uid,
         joinCode: _generateJoinCode(),
-        joinCodeEnabled: _joinCodeEnabled, // <<<--- [ใหม่!] ใช้ค่าจาก State
+        joinCodeEnabled: _joinCodeEnabled,
       );
 
       CourseService().addCourse(newCourse).then((_) {
-        Navigator.of(context).pop();
+        if (mounted) {
+          Navigator.of(context).pop();
+        }
       });
     }
   }
@@ -64,15 +65,36 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Create New Course')),
+      // --- [จุดแก้ไขที่สำคัญที่สุด!] ---
+      // เราจะใช้ Form หุ้ม ListView เพื่อให้ทั้งสองทำงานร่วมกันได้
       body: Form(
         key: _formKey,
         child: ListView(
           padding: const EdgeInsets.all(16.0),
           children: [
-            // ... (TextFormField สำหรับชื่อคลาสและชื่ออาจารย์ เหมือนเดิม) ...
-            const Divider(height: 32),
-
-            // --- [ใหม่!] สวิตช์เปิด/ปิดรหัสเชิญ ---
+            // --- Widget ทั้งหมดจะถูกวางเรียงกันในนี้ ---
+            TextFormField(
+              controller: _courseNameController,
+              decoration: const InputDecoration(labelText: 'Course Name'),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Please enter a course name';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _profNameController,
+              decoration: const InputDecoration(labelText: 'Professor Name'),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Please enter a professor name';
+                }
+                return null;
+              },
+            ),
+            const Divider(height: 32, thickness: 1),
             SwitchListTile(
               title: const Text('Enable Join Code'),
               subtitle: const Text(
@@ -85,15 +107,31 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
                 });
               },
             ),
-            const Divider(height: 32),
-
-            // --- [จบส่วนใหม่] ---
+            const Divider(height: 32, thickness: 1),
             Text(
               'Scoring Rules',
               style: Theme.of(context).textTheme.titleLarge,
             ),
-
-            // ... (TextFormField สำหรับตั้งค่าคะแนน เหมือนเดิม) ...
+            _buildScoreEditor(
+              'Present',
+              _scoringRules.presentScore,
+              (val) => _scoringRules.presentScore = val,
+            ),
+            _buildScoreEditor(
+              'Absent',
+              _scoringRules.absentScore,
+              (val) => _scoringRules.absentScore = val,
+            ),
+            _buildScoreEditor(
+              'On Leave',
+              _scoringRules.onLeaveScore,
+              (val) => _scoringRules.onLeaveScore = val,
+            ),
+            _buildScoreEditor(
+              'Late',
+              _scoringRules.lateScore,
+              (val) => _scoringRules.lateScore = val,
+            ),
             const SizedBox(height: 32),
             ElevatedButton(
               onPressed: _saveCourse,
@@ -102,6 +140,22 @@ class _CreateCourseScreenState extends State<CreateCourseScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  // --- ฟังก์ชันช่วยสร้าง UI แก้ไขคะแนนให้สะอาดขึ้น ---
+  Widget _buildScoreEditor(
+    String title,
+    double initialValue,
+    Function(double) onChanged,
+  ) {
+    return TextFormField(
+      initialValue: initialValue.toString(),
+      decoration: InputDecoration(labelText: '$title Score'),
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      onChanged: (value) {
+        onChanged(double.tryParse(value) ?? initialValue);
+      },
     );
   }
 }

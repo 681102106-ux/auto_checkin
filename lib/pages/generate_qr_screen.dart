@@ -1,47 +1,42 @@
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'dart:convert';
+import 'dart:convert'; // Import this to use jsonEncode
 
 class GenerateQRScreen extends StatelessWidget {
   final String courseId;
-  final String professorId;
+  final String courseName;
+  final String sessionId; // เพิ่ม sessionId เข้ามา
 
   const GenerateQRScreen({
     Key? key,
     required this.courseId,
-    required this.professorId,
+    required this.courseName,
+    required this.sessionId, // ทำให้ sessionId เป็นค่าที่ต้องรับเข้ามา
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    // สร้างข้อมูลที่จะใส่ใน QR Code (ในรูปแบบ JSON String)
-    final qrData = jsonEncode({
-      'courseId': courseId,
-      'professorId': professorId,
-    });
+    // สร้างข้อมูลที่จะฝังใน QR Code ในรูปแบบ JSON
+    final qrData = jsonEncode({'courseId': courseId, 'sessionId': sessionId});
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Check-in QR Code'),
-        backgroundColor: Colors.deepPurple,
-      ),
+      appBar: AppBar(title: Text('QR Code for $courseName')),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             QrImageView(
-              data: qrData,
+              data: qrData, // ใช้ข้อมูล JSON ที่เราสร้างขึ้น
               version: QrVersions.auto,
               size: 250.0,
-              embeddedImageStyle: const QrEmbeddedImageStyle(
-                size: Size(80, 80),
-              ),
             ),
-            const SizedBox(height: 24),
-            const Text(
-              'Scan this code to check-in',
-              style: TextStyle(fontSize: 18, color: Colors.grey),
+            const SizedBox(height: 20),
+            Text(
+              'Scan this QR code to check-in',
+              style: Theme.of(context).textTheme.titleLarge,
             ),
+            const SizedBox(height: 10),
+            Text('Session ID: $sessionId'),
           ],
         ),
       ),

@@ -1,119 +1,134 @@
 import 'package:auto_checkin/pages/professor_students_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:auto_checkin/models/course.dart';
 import 'package:auto_checkin/pages/create_course_screen.dart';
-import 'package:auto_checkin/pages/manage_roster_screen.dart';
-// แก้ไข import
 import 'package:auto_checkin/pages/generate_qr_screen.dart';
+import 'package:auto_checkin/pages/manage_roster_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
 
-  Stream<List<Course>> _getCourses() {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return Stream.value([]);
-    return FirebaseFirestore.instance
+  @override
+  _HomeScreenState createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  Stream<List<Course>> _getCoursesStream() {
+    final user = _auth.currentUser;
+    if (user == null) {
+      return Stream.value([]);
+    }
+    return _firestore
         .collection('courses')
         .where('professorId', isEqualTo: user.uid)
+        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map(
-          (snapshot) =>
-              snapshot.docs.map((doc) => Course.fromFirestore(doc)).toList(),
-        );
+        .map((snapshot) {
+          return snapshot.docs.map((doc) => Course.fromFirestore(doc)).toList();
+        });
   }
 
   @override
   Widget build(BuildContext context) {
+    final user = _auth.currentUser;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Courses'),
-        backgroundColor: Colors.deepPurple,
+        title: const Text('Professor Dashboard'),
         actions: [
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              if (value == 'roster') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ProfessorStudentsScreen(),
-                  ),
-                );
-              } else if (value == 'logout') {
-                FirebaseAuth.instance.signOut();
-              }
+          IconButton(
+            icon: const Icon(Icons.people),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ProfessorStudentsScreen(),
+                ),
+              );
             },
-            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-              const PopupMenuItem<String>(
-                value: 'roster',
-                child: Text('My Student Roster'),
-              ),
-              const PopupMenuItem<String>(
-                value: 'logout',
-                child: Text('Logout'),
-              ),
-            ],
+            tooltip: 'My Students',
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () async {
+              await _auth.signOut();
+            },
+            tooltip: 'Logout',
           ),
         ],
       ),
-      body: StreamBuilder<List<Course>>(
-        stream: _getCourses(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(
+      body: Column(
+        children: [
+          if (user != null)
+            Padding(
+              padding: const EdgeInsets.all(16.0),
               child: Text(
-                'No courses found. Tap the "+" button to create one.',
-                textAlign: TextAlign.center,
+                'Welcome, ${user.displayName ?? user.email}',
+                style: Theme.of(context).textTheme.headlineSmall,
               ),
-            );
-          }
+            ),
+          Expanded(
+            child: StreamBuilder<List<Course>>(
+              stream: _getCoursesStream(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      'No courses found. Create one to get started!',
+                      style: TextStyle(fontSize: 16),
+                    ),
+                  );
+                }
 
-          final courses = snapshot.data!;
-          return ListView.builder(
-            padding: const EdgeInsets.all(8.0),
-            itemCount: courses.length,
-            itemBuilder: (context, index) {
-              final course = courses[index];
-              return Card(
-                elevation: 3.0,
-                margin: const EdgeInsets.symmetric(vertical: 8.0),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.all(16.0),
-                  title: Text(
-                    course.name,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Text(course.description),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (course.isInviteEnabled)
-                        IconButton(
-                          icon: const Icon(Icons.qr_code_2),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                // แก้ไขการเรียกใช้
-                                builder: (context) => GenerateQRScreen(
-                                  courseId: course.id,
-                                  professorId: course.professorId,
-                                ),
+                final courses = snapshot.data!;
+                return ListView.builder(
+                  itemCount: courses.length,
+                  itemBuilder: (context, index) {
+                    final course = courses[index];
+                    return Card(
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      child: ListTile(
+                        title: Text(course.name),
+                        // --- นี่คือจุดที่แก้ไขครับ ---
+                        // เปลี่ยนจาก course.description ที่ไม่มีอยู่
+                        // มาเป็น course.professorName ที่มีข้อมูลอยู่แล้ว
+                        subtitle: Text('Taught by: ${course.professorName}'),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (course.isInviteEnabled)
+                              IconButton(
+                                icon: const Icon(Icons.qr_code_2),
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => GenerateQRScreen(
+                                        courseId: course.id,
+                                        courseName: course.name,
+                                      ),
+                                    ),
+                                  );
+                                },
+                                tooltip: 'Generate QR',
                               ),
-                            );
-                          },
-                          tooltip: 'Generate QR Code',
+                          ],
                         ),
-                      IconButton(
-                        icon: const Icon(Icons.people),
-                        onPressed: () {
+                        onTap: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -122,15 +137,14 @@ class HomeScreen extends StatelessWidget {
                             ),
                           );
                         },
-                        tooltip: 'Manage Roster',
                       ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          );
-        },
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
@@ -139,7 +153,6 @@ class HomeScreen extends StatelessWidget {
             MaterialPageRoute(builder: (context) => const CreateCourseScreen()),
           );
         },
-        backgroundColor: Colors.deepPurple,
         child: const Icon(Icons.add),
         tooltip: 'Create Course',
       ),

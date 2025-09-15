@@ -1,4 +1,5 @@
 import 'package:auto_checkin/models/course.dart';
+import 'package:auto_checkin/pages/generate_qr_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -13,10 +14,50 @@ class ManageRosterScreen extends StatefulWidget {
 
 class _ManageRosterScreenState extends State<ManageRosterScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  bool _isCreatingSession = false;
 
+  // --- ฟังก์ชันใหม่: สำหรับสร้างคาบเรียน ---
+  Future<void> _startNewSession() async {
+    setState(() {
+      _isCreatingSession = true;
+    });
+
+    try {
+      // 1. สร้างเอกสาร "คาบเรียน" ใหม่ใน subcollection 'sessions'
+      final newSessionRef = await _firestore
+          .collection('courses')
+          .doc(widget.course.id)
+          .collection('sessions')
+          .add({
+            'createdAt': FieldValue.serverTimestamp(),
+            // ในอนาคตเราสามารถเพิ่มข้อมูลอื่นๆ ได้ เช่น วันที่, เวลาหมดอายุ
+          });
+
+      // 2. นำ ID ของคาบเรียนที่เพิ่งสร้าง ไปเปิดหน้า QR Code
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => GenerateQRScreen(
+            courseId: widget.course.id,
+            courseName: widget.course.name,
+            sessionId: newSessionRef.id, // ส่ง Session ID ที่ได้มาใหม่ไปด้วย
+          ),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to start session: $e')));
+    } finally {
+      setState(() {
+        _isCreatingSession = false;
+      });
+    }
+  }
+
+  // --- ส่วน Logic เดิม (ยังคงไว้ แต่เราจะกลับมาปรับปรุงในเฟสต่อไป) ---
   Future<void> _approveStudent(String studentDocId) async {
     try {
-      // 1. อัปเดตสถานะใน roster ของคลาส (เหมือนเดิม)
       await _firestore
           .collection('courses')
           .doc(widget.course.id)
@@ -24,29 +65,9 @@ class _ManageRosterScreenState extends State<ManageRosterScreen> {
           .doc(studentDocId)
           .update({'status': 'present'});
 
-      // 2. (เพิ่มใหม่) เพิ่ม UID ของนักเรียนเข้าไปในชั้นหนังสือของคอร์สหลัก
       await _firestore.collection('courses').doc(widget.course.id).update({
         'studentUids': FieldValue.arrayUnion([studentDocId]),
       });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Student approved successfully!')),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Failed to approve student: $e')));
-    }
-  }
-
-  Future<void> _denyStudent(String studentDocId) async {
-    try {
-      await _firestore
-          .collection('courses')
-          .doc(widget.course.id)
-          .collection('roster')
-          .doc(studentDocId)
-          .update({'status': 'denied'});
     } catch (e) {
       // Handle error
     }
@@ -61,19 +82,7 @@ class _ManageRosterScreenState extends State<ManageRosterScreen> {
         .snapshots();
   }
 
-  Stream<QuerySnapshot> _getEnrolledStudents() {
-    return _firestore
-        .collection('courses')
-        .doc(widget.course.id)
-        .collection('roster')
-        .where('status', whereIn: ['present', 'absent'])
-        .snapshots();
-  }
-
-  Widget _buildStudentList(
-    Stream<QuerySnapshot> stream, {
-    bool isPending = false,
-  }) {
+  Widget _buildStudentList(Stream<QuerySnapshot> stream) {
     return StreamBuilder<QuerySnapshot>(
       stream: stream,
       builder: (context, snapshot) {
@@ -81,34 +90,18 @@ class _ManageRosterScreenState extends State<ManageRosterScreen> {
           return const Center(child: CircularProgressIndicator());
         }
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return Center(
-            child: Text(
-              isPending ? 'No pending requests' : 'No students enrolled',
-            ),
-          );
+          return const Center(child: Text('No pending requests'));
         }
-
+        // ... (UI เดิม)
         return ListView(
           children: snapshot.data!.docs.map((doc) {
             Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
             return ListTile(
               title: Text(data['student_name'] ?? 'No Name'),
-              subtitle: Text(data['student_id'] ?? 'No ID'),
-              trailing: isPending
-                  ? Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.check, color: Colors.green),
-                          onPressed: () => _approveStudent(doc.id),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.close, color: Colors.red),
-                          onPressed: () => _denyStudent(doc.id),
-                        ),
-                      ],
-                    )
-                  : Text(data['status'] ?? ''),
+              trailing: IconButton(
+                icon: const Icon(Icons.check, color: Colors.green),
+                onPressed: () => _approveStudent(doc.id),
+              ),
             );
           }).toList(),
         );
@@ -118,24 +111,34 @@ class _ManageRosterScreenState extends State<ManageRosterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(widget.course.name),
-          bottom: const TabBar(
-            tabs: [
-              Tab(text: 'Pending Approval'),
-              Tab(text: 'Enrolled Students'),
-            ],
+    return Scaffold(
+      appBar: AppBar(title: Text(widget.course.name)),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: _isCreatingSession
+                ? const CircularProgressIndicator()
+                : ElevatedButton.icon(
+                    icon: const Icon(Icons.qr_code_scanner),
+                    label: const Text('Start New Check-in Session'),
+                    onPressed: _startNewSession,
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 50),
+                      textStyle: const TextStyle(fontSize: 16),
+                    ),
+                  ),
           ),
-        ),
-        body: TabBarView(
-          children: [
-            _buildStudentList(_getPendingStudents(), isPending: true),
-            _buildStudentList(_getEnrolledStudents()),
-          ],
-        ),
+          const Divider(),
+          const Padding(
+            padding: EdgeInsets.all(8.0),
+            child: Text(
+              'Pending Approvals', // เราจะเปลี่ยนส่วนนี้ในเฟสต่อไป
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          ),
+          Expanded(child: _buildStudentList(_getPendingStudents())),
+        ],
       ),
     );
   }

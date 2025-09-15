@@ -2,7 +2,8 @@ import 'package:auto_checkin/pages/home_screen.dart';
 import 'package:auto_checkin/pages/student_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-// เปลี่ยน import จาก flutterfire_ui เป็น firebase_ui_auth
+
+// ตรวจสอบให้แน่ใจว่า import path นี้ถูกต้อง
 import 'package:firebase_ui_auth/firebase_ui_auth.dart';
 
 class AuthGate extends StatelessWidget {
@@ -14,7 +15,6 @@ class AuthGate extends StatelessWidget {
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
-          // ใช้ SignInScreen จาก package ใหม่
           return SignInScreen(
             providerConfigs: const [EmailProviderConfiguration()],
             headerBuilder: (context, constraints, shrinkOffset) {
@@ -22,7 +22,6 @@ class AuthGate extends StatelessWidget {
                 padding: const EdgeInsets.all(20),
                 child: AspectRatio(
                   aspectRatio: 1,
-                  // ตรวจสอบให้แน่ใจว่า path ของรูปภาพถูกต้อง
                   child: Image.asset('assets/images/logo.png'),
                 ),
               );
@@ -47,7 +46,6 @@ class AuthGate extends StatelessWidget {
           );
         }
 
-        // Logic การแยก Role ของ User (เหมือนเดิม)
         if (snapshot.data!.email!.contains('psu.ac.th')) {
           if (snapshot.data!.email!.contains(RegExp(r'[0-9]'))) {
             return const StudentScreen();

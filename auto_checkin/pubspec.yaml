@@ -6,7 +6,6 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  # อัปเดตเวอร์ชัน SDK เพื่อรองรับ package ใหม่
   sdk: '>=2.18.0 <3.0.0'
 
 dependencies:
@@ -18,7 +17,7 @@ dependencies:
   firebase_auth: ^4.9.0
   cloud_firestore: ^4.9.1
   
-  # ลบ flutterfire_ui ออก และเพิ่ม firebase_ui_auth เข้ามาแทน
+  # ตรวจสอบให้แน่ใจว่าบรรทัดนี้ถูกต้อง
   firebase_ui_auth: ^1.2.10 
   qr_code_scanner: ^1.0.1
   qr_flutter: ^4.1.0
@@ -33,3 +32,4 @@ flutter:
   assets:
     - assets/images/
     - assets/icons/
+

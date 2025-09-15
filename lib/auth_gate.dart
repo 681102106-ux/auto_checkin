@@ -1,6 +1,7 @@
 import 'package:auto_checkin/pages/home_screen.dart';
 import 'package:auto_checkin/pages/student_screen.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+// แก้ไข import บรรทัดนี้เพื่อแก้ปัญหาชื่อซ้ำซ้อน
+import 'package:firebase_auth/firebase_auth.dart' hide EmailAuthProvider;
 import 'package:flutter/material.dart';
 
 // ตรวจสอบให้แน่ใจว่า import path นี้ถูกต้อง
@@ -15,8 +16,12 @@ class AuthGate extends StatelessWidget {
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
+          // แก้ไขจาก 'providerConfigs' เป็น 'providers'
           return SignInScreen(
-            providerConfigs: const [EmailProviderConfiguration()],
+            providers: [
+              // ตอนนี้ Dart จะรู้ว่าต้องใช้ EmailAuthProvider จาก firebase_ui_auth
+              EmailAuthProvider(),
+            ],
             headerBuilder: (context, constraints, shrinkOffset) {
               return Padding(
                 padding: const EdgeInsets.all(20),

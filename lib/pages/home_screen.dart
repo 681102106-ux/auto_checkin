@@ -17,9 +17,11 @@ class _HomeScreenState extends State<HomeScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirestoreService _firestoreService = FirestoreService();
 
-  // --- นี่คือส่วนที่อัปเกรดเพื่อแก้ปัญหาการลบข้อมูล ---
   void _showDeleteConfirmationDialog(BuildContext context, Course course) {
+    // 1. "จดที่อยู่" ของ ScaffoldMessenger ไว้ในตัวแปรนี้ก่อน
+    //    เพื่อให้เราสามารถเรียกใช้ได้ แม้ว่า Context ของ Dialog จะหายไปแล้ว
     final scaffoldMessenger = ScaffoldMessenger.of(context);
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -35,24 +37,27 @@ class _HomeScreenState extends State<HomeScreen> {
           TextButton(
             child: const Text('Delete'),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            // 1. เปลี่ยนฟังก์ชันนี้ให้เป็น async เพื่อให้ "รอ" การทำงานได้
             onPressed: () async {
+              // ปิด Dialog ทันทีที่กด
+              Navigator.of(ctx).pop();
               try {
-                // 2. "รอ" ให้การลบใน Firebase เสร็จสิ้นสมบูรณ์
+                // รอให้การลบข้อมูลเสร็จสิ้น
                 await _firestoreService.deleteCourse(course.id);
 
-                // 3. ปิด Dialog และแสดงข้อความเมื่อสำเร็จ
-                Navigator.of(ctx).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
+                // --- นี่คือส่วนที่แก้ไขครับ ---
+                // เราจะใช้ `scaffoldMessenger` ที่เรา "จดที่อยู่" ไว้ก่อนหน้า
+                // เพื่อแสดง SnackBar อย่างปลอดภัย 100%
+                scaffoldMessenger.showSnackBar(
                   SnackBar(
                     content: Text('"${course.name}" has been deleted.'),
                     backgroundColor: Colors.redAccent,
                   ),
                 );
               } catch (e) {
-                // 4. ถ้าเกิดข้อผิดพลาด ให้แสดง Error
-                Navigator.of(ctx).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
+                // --- นี่คือส่วนที่แก้ไขครับ ---
+                // เช่นเดียวกัน เราจะใช้ `scaffoldMessenger` ตัวเดิม
+                // เพื่อแสดง Error อย่างปลอดภัย
+                scaffoldMessenger.showSnackBar(
                   SnackBar(
                     content: Text('Failed to delete course: $e'),
                     backgroundColor: Colors.red,

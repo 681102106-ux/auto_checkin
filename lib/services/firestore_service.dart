@@ -6,6 +6,12 @@ import '../models/checkin_session.dart';
 class FirestoreService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  Future<void> deleteCourse(String courseId) {
+    // หมายเหตุ: ในแอปจริง คุณอาจจะต้องใช้ Cloud Function เพื่อลบ
+    // subcollections ทั้งหมด (sessions, attendance) ที่อยู่ข้างในก่อน
+    return _firestore.collection('courses').doc(courseId).delete();
+  }
+
   // --- ฟังก์ชันสำหรับ User ---
   Future<void> createUserProfileIfNeeded(User user) async {
     final userDocRef = _firestore.collection('users').doc(user.uid);
@@ -36,10 +42,6 @@ class FirestoreService {
           (snapshot) =>
               snapshot.docs.map((doc) => Course.fromFirestore(doc)).toList(),
         );
-  }
-
-  Future<void> deleteCourse(String courseId) {
-    return _firestore.collection('courses').doc(courseId).delete();
   }
 
   // --- ฟังก์ชันสำหรับ Session และ Attendance ---

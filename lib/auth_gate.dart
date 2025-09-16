@@ -20,7 +20,6 @@ class AuthGate extends StatelessWidget {
       builder: (context, snapshot) {
         // --- ส่วนที่ 1: User ยังไม่ได้ Login ---
         if (!snapshot.hasData) {
-          // --- นำหน้า Login ที่สวยงามและทำงานได้กลับเข้ามา ---
           return Scaffold(
             body: Stack(
               children: [
@@ -61,35 +60,37 @@ class AuthGate extends StatelessWidget {
                                 }
                               }),
                             ],
-                            headerBuilder:
-                                (context, constraints, shrinkOffset) {
-                                  return Column(
-                                    children: [
-                                      Icon(
-                                        Icons.school_outlined,
-                                        size: 80,
-                                        color: Theme.of(context).primaryColor,
-                                      ),
-                                      const SizedBox(height: 16),
-                                      const Text(
-                                        'Auto Check-in',
-                                        style: TextStyle(
-                                          fontSize: 28,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        'Welcome! Please sign in to continue.',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          color: Colors.grey.shade600,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 24),
-                                    ],
-                                  );
-                                },
+                            headerBuilder: (context, constraints, shrinkOffset) {
+                              return Column(
+                                children: [
+                                  const Icon(
+                                    Icons.school_outlined,
+                                    size: 80,
+                                    // --- นี่คือส่วนที่แก้ไขครับ ---
+                                    // เราจะระบุสีที่แน่นอน (Colors.indigo) ลงไปเลย
+                                    // เพื่อป้องกันไม่ให้ SignInScreen สับสน
+                                    color: Colors.indigo,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  const Text(
+                                    'Auto Check-in',
+                                    style: TextStyle(
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Welcome! Please sign in to continue.',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 24),
+                                ],
+                              );
+                            },
                             styles: const {
                               EmailFormStyle(
                                 signInButtonVariant: ButtonVariant.filled,

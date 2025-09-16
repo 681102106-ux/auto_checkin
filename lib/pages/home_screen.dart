@@ -19,6 +19,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // --- นี่คือส่วนที่อัปเกรดเพื่อแก้ปัญหาการลบข้อมูล ---
   void _showDeleteConfirmationDialog(BuildContext context, Course course) {
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(

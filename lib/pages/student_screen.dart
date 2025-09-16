@@ -30,6 +30,8 @@ class _StudentScreenState extends State<StudentScreen> {
         sessionId: sessionId,
         student: user,
       );
+      // ... (rest of the function is correct) ...
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Check-in successful!'),

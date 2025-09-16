@@ -1,18 +1,13 @@
+import 'package:auto_checkin/models/checkin_session.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:auto_checkin/models/course.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../models/checkin_session.dart';
 
+/// "สุดยอดเชฟ" ที่จัดการทุกอย่างเกี่ยวกับ Firestore
 class FirestoreService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  Future<void> deleteCourse(String courseId) {
-    // หมายเหตุ: ในแอปจริง คุณอาจจะต้องใช้ Cloud Function เพื่อลบ
-    // subcollections ทั้งหมด (sessions, attendance) ที่อยู่ข้างในก่อน
-    return _firestore.collection('courses').doc(courseId).delete();
-  }
-
-  // --- ฟังก์ชันสำหรับ User ---
+  // --- USER PROFILE MANAGEMENT ---
   Future<void> createUserProfileIfNeeded(User user) async {
     final userDocRef = _firestore.collection('users').doc(user.uid);
     final doc = await userDocRef.get();
@@ -31,7 +26,7 @@ class FirestoreService {
     return _firestore.collection('users').doc(uid).get();
   }
 
-  // --- ฟังก์ชันสำหรับ Professor ---
+  // --- COURSE MANAGEMENT (for Professors) ---
   Stream<List<Course>> getCoursesStreamForProfessor(String professorId) {
     return _firestore
         .collection('courses')
@@ -44,7 +39,15 @@ class FirestoreService {
         );
   }
 
-  // --- ฟังก์ชันสำหรับ Session และ Attendance ---
+  // Note: Add logic is handled in create_course_screen.dart
+  // Note: Update logic can be added here in the future
+
+  Future<void> deleteCourse(String courseId) {
+    // In a production app, a Cloud Function is recommended to delete subcollections.
+    return _firestore.collection('courses').doc(courseId).delete();
+  }
+
+  // --- SESSION & ATTENDANCE MANAGEMENT ---
   Future<String> startNewCheckinSession(String courseId) async {
     final newSessionRef = await _firestore
         .collection('courses')
@@ -72,7 +75,6 @@ class FirestoreService {
         );
   }
 
-  // --- นี่คือฟังก์ชันที่ขาดไปครับ ---
   Stream<QuerySnapshot> getLiveAttendanceStream(
     String courseId,
     String sessionId,
@@ -87,7 +89,7 @@ class FirestoreService {
         .snapshots();
   }
 
-  // --- ฟังก์ชันสำหรับ Student ---
+  // --- STUDENT-SPECIFIC FUNCTIONS ---
   Stream<List<Course>> getEnrolledCoursesStream(String studentUid) {
     return _firestore
         .collection('courses')
@@ -110,6 +112,7 @@ class FirestoreService {
         .doc(sessionId)
         .collection('attendance')
         .doc(student.uid);
+    // Using set() prevents duplicate check-ins for the same student in the same session.
     await attendanceRef.set({
       'student_name': student.displayName ?? student.email,
       'student_uid': student.uid,

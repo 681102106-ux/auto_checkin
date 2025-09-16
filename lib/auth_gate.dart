@@ -1,6 +1,10 @@
-import 'package:auto_checkin/pages/home_screen.dart';
-import 'package:auto_checkin/pages/student_screen.dart';
-import 'package:auto_checkin/services/firestore_service.dart';
+// --- นี่คือส่วนที่แก้ไขครับ ---
+// เปลี่ยนจาก "ที่อยู่เต็ม" มาเป็น "เส้นทางลัด" ที่แม่นยำกว่า
+import 'pages/home_screen.dart';
+import 'pages/student_screen.dart';
+import 'services/firestore_service.dart';
+// ----------------------------
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide EmailAuthProvider;
 import 'package:firebase_ui_auth/firebase_ui_auth.dart';
@@ -14,29 +18,106 @@ class AuthGate extends StatelessWidget {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
+        // --- ส่วนที่ 1: User ยังไม่ได้ Login ---
         if (!snapshot.hasData) {
-          return SignInScreen(
-            providers: [EmailAuthProvider()],
-            actions: [
-              AuthStateChangeAction<SignedIn>((context, state) {
-                if (state.user?.metadata.creationTime ==
-                    state.user?.metadata.lastSignInTime) {
-                  // --- ส่วนที่แก้ไข: เรียกใช้ฟังก์ชันที่ถูกต้อง ---
-                  FirestoreService().createUserProfileIfNeeded(state.user!);
-                }
-              }),
-            ],
+          return Scaffold(
+            // --- นี่คือส่วนที่แก้ไข: ใช้ Stack เพื่อวาง UI ซ้อนกัน ---
+            body: Stack(
+              children: [
+                // Layer 1: พื้นหลังไล่สีที่สวยงามของเรา
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Colors.indigo.shade300, Colors.blue.shade500],
+                    ),
+                  ),
+                ),
+                // Layer 2: ฟอร์ม Login ที่จะลอยอยู่ด้านบน
+                Center(
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: Card(
+                        elevation: 8,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 32,
+                          ),
+                          child: SignInScreen(
+                            providers: [EmailAuthProvider()],
+                            actions: [
+                              AuthStateChangeAction<SignedIn>((context, state) {
+                                if (state.user?.metadata.creationTime ==
+                                    state.user?.metadata.lastSignInTime) {
+                                  FirestoreService().createUserProfileIfNeeded(
+                                    state.user!,
+                                  );
+                                }
+                              }),
+                            ],
+                            headerBuilder:
+                                (context, constraints, shrinkOffset) {
+                                  return Column(
+                                    children: [
+                                      Icon(
+                                        Icons.school_outlined,
+                                        size: 80,
+                                        color: Theme.of(context).primaryColor,
+                                      ),
+                                      const SizedBox(height: 16),
+                                      const Text(
+                                        'Auto Check-in',
+                                        style: TextStyle(
+                                          fontSize: 28,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Welcome! Please sign in to continue.',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          color: Colors.grey.shade600,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 24),
+                                    ],
+                                  );
+                                },
+                            styles: const {
+                              EmailFormStyle(
+                                signInButtonVariant: ButtonVariant.filled,
+                              ),
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           );
         }
+
+        // --- ส่วนที่ 2: User Login แล้ว, ไปยังหน้าตรวจสอบ Role ---
         return RoleBasedScreen(user: snapshot.data!);
       },
     );
   }
 }
 
+// ... (Widget RoleBasedScreen เหมือนเดิม ไม่มีการเปลี่ยนแปลง) ...
 class RoleBasedScreen extends StatefulWidget {
   final User user;
   const RoleBasedScreen({Key? key, required this.user}) : super(key: key);
+
   @override
   State<RoleBasedScreen> createState() => _RoleBasedScreenState();
 }
@@ -48,7 +129,6 @@ class _RoleBasedScreenState extends State<RoleBasedScreen> {
   @override
   void initState() {
     super.initState();
-    // --- ส่วนที่แก้ไข: เรียกใช้ฟังก์ชันที่ถูกต้อง ---
     _userProfileFuture = _firestoreService.getUserProfile(widget.user.uid);
   }
 
@@ -57,7 +137,6 @@ class _RoleBasedScreenState extends State<RoleBasedScreen> {
     return FutureBuilder<DocumentSnapshot>(
       future: _userProfileFuture,
       builder: (context, snapshot) {
-        // ... (UI เดิมถูกต้องอยู่แล้ว) ...
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),

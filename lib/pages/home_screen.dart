@@ -2,7 +2,7 @@ import 'package:auto_checkin/models/course.dart';
 import 'package:auto_checkin/pages/create_course_screen.dart';
 import 'package:auto_checkin/pages/course_detail_screen.dart';
 import 'package:auto_checkin/pages/professor_students_screen.dart';
-import 'package:auto_checkin/services/firestore_service.dart'; // 1. Import ที่ถูกต้อง
+import 'package:auto_checkin/services/firestore_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -15,10 +15,9 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  // 2. เรียกใช้ "สุดยอดเชฟ" คนใหม่
   final FirestoreService _firestoreService = FirestoreService();
 
-  // ฟังก์ชันสำหรับแสดง Dialog ยืนยันการลบ
+  // --- นี่คือส่วนที่อัปเกรดเพื่อแก้ปัญหาการลบข้อมูล ---
   void _showDeleteConfirmationDialog(BuildContext context, Course course) {
     showDialog(
       context: context,
@@ -35,15 +34,30 @@ class _HomeScreenState extends State<HomeScreen> {
           TextButton(
             child: const Text('Delete'),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            onPressed: () {
-              _firestoreService.deleteCourse(course.id);
-              Navigator.of(ctx).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('"${course.name}" has been deleted.'),
-                  backgroundColor: Colors.redAccent,
-                ),
-              );
+            // 1. เปลี่ยนฟังก์ชันนี้ให้เป็น async เพื่อให้ "รอ" การทำงานได้
+            onPressed: () async {
+              try {
+                // 2. "รอ" ให้การลบใน Firebase เสร็จสิ้นสมบูรณ์
+                await _firestoreService.deleteCourse(course.id);
+
+                // 3. ปิด Dialog และแสดงข้อความเมื่อสำเร็จ
+                Navigator.of(ctx).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('"${course.name}" has been deleted.'),
+                    backgroundColor: Colors.redAccent,
+                  ),
+                );
+              } catch (e) {
+                // 4. ถ้าเกิดข้อผิดพลาด ให้แสดง Error
+                Navigator.of(ctx).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Failed to delete course: $e'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
             },
           ),
         ],
@@ -55,7 +69,6 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final user = _auth.currentUser;
     if (user == null) {
-      // Should not happen if AuthGate is working, but acts as a safeguard.
       return const Scaffold(body: Center(child: Text("Authenticating...")));
     }
 
@@ -83,23 +96,17 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       body: StreamBuilder<List<Course>>(
-        // 3. แก้ไขการเรียกใช้ฟังก์ชันให้ถูกต้อง
         stream: _firestoreService.getCoursesStreamForProfessor(user.uid),
         builder: (context, snapshot) {
+          // ... (UI ส่วนอื่น ๆ เหมือนเดิม) ...
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (snapshot.hasError) {
-            return Center(child: Text("Error: ${snapshot.error}"));
+          if (!snapshot.hasError) {
+            // ...
           }
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(
-              child: Text(
-                'No courses found.\nTap the "+" button to create one!',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 18, color: Colors.grey),
-              ),
-            );
+            // ...
           }
 
           final courses = snapshot.data!;

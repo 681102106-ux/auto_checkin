@@ -23,7 +23,7 @@ class _StudentScreenState extends State<StudentScreen> {
     try {
       // --- นี่คือส่วนที่อัปเกรดเพื่อแก้ปัญหา Bad Request ---
       // 1. ตรวจสอบก่อนว่าข้อมูลที่สแกนมาว่างเปล่าหรือไม่
-      if (scannedCode.isEmpty) {
+      if (scannedCode.trim().isEmpty) {
         throw const FormatException("QR Code data cannot be empty.");
       }
 

@@ -98,15 +98,20 @@ class _HomeScreenState extends State<HomeScreen> {
       body: StreamBuilder<List<Course>>(
         stream: _firestoreService.getCoursesStreamForProfessor(user.uid),
         builder: (context, snapshot) {
-          // ... (UI ส่วนอื่น ๆ เหมือนเดิม) ...
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (!snapshot.hasError) {
-            // ...
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
           }
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            // ...
+            return const Center(
+              child: Text(
+                'No courses found.\nTap the "+" button to create one!',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 18, color: Colors.grey),
+              ),
+            );
           }
 
           final courses = snapshot.data!;

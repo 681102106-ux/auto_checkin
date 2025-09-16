@@ -6,7 +6,7 @@ class Course {
   final String professorId;
   final String professorName;
   final bool isInviteEnabled;
-  final List<String> studentUids; // เพิ่ม field ใหม่สำหรับเก็บรายชื่อนักเรียน
+  final List<String> studentUids;
 
   Course({
     required this.id,
@@ -14,7 +14,7 @@ class Course {
     required this.professorId,
     required this.professorName,
     required this.isInviteEnabled,
-    this.studentUids = const [], // กำหนดค่าเริ่มต้นเป็น array ว่าง
+    this.studentUids = const [],
   });
 
   factory Course.fromFirestore(DocumentSnapshot doc) {
@@ -25,11 +25,13 @@ class Course {
       professorId: data['professorId'] ?? '',
       professorName: data['professorName'] ?? '',
       isInviteEnabled: data['isInviteEnabled'] ?? false,
-      // แปลงข้อมูลจาก Firestore ให้เป็น List<String>
       studentUids: List<String>.from(data['studentUids'] ?? []),
     );
   }
 
+  // --- ส่วนที่เพิ่มเข้ามา ---
+  // เพิ่มฟังก์ชัน toMap (ที่ถูกเรียกผิดเป็น toJson ใน error)
+  // เพื่อแปลงข้อมูล Course object กลับเป็น Map สำหรับ Firestore
   Map<String, dynamic> toMap() {
     return {
       'name': name,

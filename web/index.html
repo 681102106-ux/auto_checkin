@@ -1,46 +1,46 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <!-- 
-    The value below is injected by flutter build, do not touch.
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="An auto check-in application using Flutter.">
+  <meta name="description" content="A new Flutter project.">
 
   <!-- iOS meta tags & icons -->
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="auto_checkin">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
-  <!-- PWA meta tags -->
-  <meta name="mobile-web-app-capable" content="yes">
-
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>Auto Check-in</title>
+  <title>auto_checkin</title>
   <link rel="manifest" href="manifest.json">
 
-  <!-- 
-    This script adds the flutter initialization JS code.
-    This is the NEW standard for Flutter web initialization.
-  -->
   <script>
-    const serviceWorkerVersion = "{{flutter_service_worker_version}}";
+    // The value below is injected by flutter build, do not touch.
+    var serviceWorkerVersion = null;
   </script>
+  <!-- This script adds the flutter initialization JS code -->
+  <script src="flutter.js" defer></script>
 </head>
 <body>
-  <!-- 
-    This script boots the Flutter web engine and runs your app.
-    The 'defer' attribute ensures it runs after the page is parsed.
-  -->
-  <script src="flutter.js" defer></script>
+  <script>
+    window.addEventListener('load', function(ev) {
+      // Download main.dart.js
+      _flutter.loader.loadEntrypoint({
+        serviceWorker: {
+          serviceWorkerVersion: serviceWorkerVersion,
+        }
+      }).then(function(engineInitializer) {
+        return engineInitializer.initializeEngine();
+      }).then(function(appRunner) {
+        return appRunner.runApp();
+      });
+    });
+  </script>
 </body>
 </html>
-

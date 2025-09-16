@@ -3,8 +3,8 @@ import 'package:auto_checkin/models/course.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/checkin_session.dart';
 
-/// "สุดยอดเชฟ" ที่จัดการทุกอย่างเกี่ยวกับ Firestore
 class FirestoreService {
+  // --- ส่วนที่เพิ่มเข้ามา: "เตาไฟ" หรือเครื่องมือเชื่อมต่อ Firestore ---
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   // --- USER PROFILE MANAGEMENT ---
@@ -115,7 +115,6 @@ class FirestoreService {
       'status': 'present',
     });
 
-    // อัปเดตทะเบียนหลักของคอร์ส
     final courseRef = _firestore.collection('courses').doc(courseId);
     await courseRef.update({
       'studentUids': FieldValue.arrayUnion([student.uid]),

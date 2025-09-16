@@ -21,30 +21,49 @@ class _StudentScreenState extends State<StudentScreen> {
     final user = _auth.currentUser;
     if (user == null) return;
     try {
+      // --- นี่คือส่วนที่อัปเกรดเพื่อแก้ปัญหา Bad Request ---
+      // 1. ตรวจสอบก่อนว่าข้อมูลที่สแกนมาว่างเปล่าหรือไม่
+      if (scannedCode.isEmpty) {
+        throw const FormatException("QR Code data cannot be empty.");
+      }
+
       final data = jsonDecode(scannedCode) as Map<String, dynamic>;
       final courseId = data['courseId'] as String?;
       final sessionId = data['sessionId'] as String?;
-      if (courseId == null || sessionId == null) throw 'Invalid QR Data';
+
+      // 2. ตรวจสอบให้ละเอียดขึ้น ว่าค่าที่ได้มาไม่ใช่ null และไม่ว่างเปล่า
+      if (courseId == null ||
+          courseId.isEmpty ||
+          sessionId == null ||
+          sessionId.isEmpty) {
+        throw const FormatException(
+          "Invalid or empty course/session ID found in QR code.",
+        );
+      }
+
       await _firestoreService.createAttendanceRecord(
         courseId: courseId,
         sessionId: sessionId,
         student: user,
       );
-      // ... (rest of the function is correct) ...
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Check-in successful!'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Check-in successful!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('QR Code Error: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('QR Code Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -69,7 +88,6 @@ class _StudentScreenState extends State<StudentScreen> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // --- ส่วนที่ 1: Action Buttons ---
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: ElevatedButton.icon(
@@ -88,7 +106,6 @@ class _StudentScreenState extends State<StudentScreen> {
               },
             ),
           ),
-          // --- เครื่องมือ Debug ---
           if (kDebugMode)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -114,7 +131,6 @@ class _StudentScreenState extends State<StudentScreen> {
                 ),
               ),
             ),
-          // --- ส่วนที่ 2: ชั้นหนังสือ ---
           const Divider(height: 32),
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16.0),
@@ -145,7 +161,6 @@ class _StudentScreenState extends State<StudentScreen> {
                         title: Text(course.name),
                         subtitle: Text(course.professorName),
                       ),
-                      // onTap: () => /* View course details */,
                     );
                   },
                 );

@@ -20,28 +20,88 @@ class AuthGate extends StatelessWidget {
       builder: (context, snapshot) {
         // --- ส่วนที่ 1: User ยังไม่ได้ Login ---
         if (!snapshot.hasData) {
+          // --- นำหน้า Login ที่สวยงามและทำงานได้กลับเข้ามา ---
           return Scaffold(
-            body: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Colors.indigo.shade300, Colors.blue.shade500],
-                ),
-              ),
-              child: const Center(
-                // --- นี่คือส่วนที่แก้ไขสำหรับ "Smoke Test" ---
-                // เราจะแสดงแค่ Text Widget ง่ายๆ เพื่อทดสอบ
-                // ถ้าเห็นข้อความนี้ แสดงว่าโครงสร้างถูกต้อง ปัญหาอยู่ที่ SignInScreen
-                child: Text(
-                  'Testing...',
-                  style: TextStyle(
-                    fontSize: 40,
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
+            body: Stack(
+              children: [
+                // Layer 1: พื้นหลังไล่สี
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Colors.indigo.shade300, Colors.blue.shade500],
+                    ),
                   ),
                 ),
-              ),
+                // Layer 2: ฟอร์ม Login ที่ลอยอยู่ตรงกลาง
+                Center(
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: Card(
+                        elevation: 8,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 32,
+                          ),
+                          child: SignInScreen(
+                            providers: [EmailAuthProvider()],
+                            actions: [
+                              AuthStateChangeAction<SignedIn>((context, state) {
+                                if (state.user?.metadata.creationTime ==
+                                    state.user?.metadata.lastSignInTime) {
+                                  FirestoreService().createUserProfileIfNeeded(
+                                    state.user!,
+                                  );
+                                }
+                              }),
+                            ],
+                            headerBuilder:
+                                (context, constraints, shrinkOffset) {
+                                  return Column(
+                                    children: [
+                                      Icon(
+                                        Icons.school_outlined,
+                                        size: 80,
+                                        color: Theme.of(context).primaryColor,
+                                      ),
+                                      const SizedBox(height: 16),
+                                      const Text(
+                                        'Auto Check-in',
+                                        style: TextStyle(
+                                          fontSize: 28,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Welcome! Please sign in to continue.',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          color: Colors.grey.shade600,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 24),
+                                    ],
+                                  );
+                                },
+                            styles: const {
+                              EmailFormStyle(
+                                signInButtonVariant: ButtonVariant.filled,
+                              ),
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           );
         }

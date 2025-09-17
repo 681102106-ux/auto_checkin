@@ -1,0 +1,44 @@
+# ชื่อของ Workflow ที่จะแสดงในแท็บ Actions
+name: Deploy Flutter Web to GitHub Pages
+
+# กำหนดว่าจะให้ Workflow นี้ทำงานเมื่อไหร่
+on:
+  # ทำงานทุกครั้งที่มีการ push โค้ดไปยัง branch 'main'
+  push:
+    branches: [ main ]
+
+# รายการของ "งาน" ที่จะให้หุ่นยนต์ทำ
+jobs:
+  build_and_deploy:
+    # กำหนดให้ทำงานบนเครื่องเสมือน (Virtual Machine) ของ Ubuntu เวอร์ชันล่าสุด
+    runs-on: ubuntu-latest
+
+    # ขั้นตอนการทำงาน
+    steps:
+      # 1. Checkout Code: ดาวน์โหลดโค้ดล่าสุดจาก Repository ของคุณ
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # 2. Setup Flutter: ติดตั้ง Flutter SDK ลงบนเครื่อง
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable' # ใช้ Flutter เวอร์ชัน stable
+
+      # 3. Install Dependencies: รัน 'flutter pub get'
+      - name: Install dependencies
+        run: flutter pub get
+
+      # 4. Build Web App: สร้างแอปเวอร์ชันเว็บ
+      #    --base-href กำหนด path หลักของเว็บให้ถูกต้องตามชื่อ repository
+      - name: Build Flutter web app
+        run: flutter build web --base-href /auto_checkin/
+
+      # 5. Deploy to GitHub Pages: นำไฟล์ที่สร้างเสร็จแล้วไปวางบน gh-pages branch
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          # ใช้ "กุญแจปล่อยยาน" ที่เราสร้างไว้ในขั้นตอนที่ 1
+          deploy_key: ${{ secrets.ACTIONS_DEPLOY_KEY }}
+          # บอกให้หุ่นยนต์นำไฟล์จากโฟลเดอร์นี้ไปปล่อย
+          publish_dir: ./build/web
